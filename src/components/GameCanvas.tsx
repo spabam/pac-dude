@@ -71,7 +71,7 @@ const GameCanvas: React.FC = () => {
   // Prevent arrow keys from scrolling the page
   useEffect(() => {
     const preventDefaultForArrowKeys = (e: KeyboardEvent) => {
-      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'a', 's', 'd', ' '].includes(e.key.toLowerCase())) {
         e.preventDefault();
       }
     };
@@ -82,20 +82,20 @@ const GameCanvas: React.FC = () => {
     };
   }, []);
   
-  // Handle keyboard input
+  // Handle keyboard input - modified to use WASD keys
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      switch (e.key) {
-        case 'ArrowUp':
+      switch (e.key.toLowerCase()) {
+        case 'w':
           nextDirection.current = Direction.UP;
           break;
-        case 'ArrowDown':
+        case 's':
           nextDirection.current = Direction.DOWN;
           break;
-        case 'ArrowLeft':
+        case 'a':
           nextDirection.current = Direction.LEFT;
           break;
-        case 'ArrowRight':
+        case 'd':
           nextDirection.current = Direction.RIGHT;
           break;
         case ' ':
@@ -690,7 +690,7 @@ const GameCanvas: React.FC = () => {
                 className="w-16 h-16 bg-primary rounded-full shadow-lg flex items-center justify-center text-white text-3xl"
                 aria-label="Move Up"
               >
-                ▲
+                W
               </button>
             </div>
             <div className="col-start-1 row-start-2">
@@ -699,7 +699,7 @@ const GameCanvas: React.FC = () => {
                 className="w-16 h-16 bg-primary rounded-full shadow-lg flex items-center justify-center text-white text-3xl"
                 aria-label="Move Left"
               >
-                ◄
+                A
               </button>
             </div>
             <div className="col-start-2 row-start-2">
@@ -725,7 +725,7 @@ const GameCanvas: React.FC = () => {
                 className="w-16 h-16 bg-primary rounded-full shadow-lg flex items-center justify-center text-white text-3xl"
                 aria-label="Move Right"
               >
-                ►
+                D
               </button>
             </div>
             <div className="col-start-2 row-start-3">
@@ -734,7 +734,7 @@ const GameCanvas: React.FC = () => {
                 className="w-16 h-16 bg-primary rounded-full shadow-lg flex items-center justify-center text-white text-3xl"
                 aria-label="Move Down"
               >
-                ▼
+                S
               </button>
             </div>
           </div>
