@@ -68,6 +68,20 @@ const GameCanvas: React.FC = () => {
     }
   }, [score, highScore]);
   
+  // Prevent arrow keys from scrolling the page
+  useEffect(() => {
+    const preventDefaultForArrowKeys = (e: KeyboardEvent) => {
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
+        e.preventDefault();
+      }
+    };
+    
+    window.addEventListener('keydown', preventDefaultForArrowKeys);
+    return () => {
+      window.removeEventListener('keydown', preventDefaultForArrowKeys);
+    };
+  }, []);
+  
   // Handle keyboard input
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
