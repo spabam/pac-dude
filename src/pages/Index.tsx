@@ -1,12 +1,20 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+
+import GameCanvas from '../components/GameCanvas';
 
 const Index = () => {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-gray-600">Start building your amazing project here!</p>
-      </div>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-background text-foreground">
+      <header className="text-center mb-4">
+        <h1 className="text-4xl font-pixel text-yellow-400 mb-2">GHOST GOBBLER</h1>
+        <p className="text-lg text-blue-400 font-pixel">Classic arcade action for Debian Linux</p>
+      </header>
+      <main className="w-full flex justify-center">
+        <GameCanvas />
+      </main>
+      <footer className="mt-8 text-center text-sm text-muted-foreground">
+        <p>Use arrow keys to move, space to start/pause</p>
+        <p className="mt-2">Created with Lovable ❤️</p>
+      </footer>
     </div>
   );
 };
