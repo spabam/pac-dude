@@ -34,7 +34,6 @@ const GameCanvas: React.FC = () => {
   const [highScore, setHighScore] = useState<number>(0);
   const isMobile = useIsMobile();
   
-  // Initialize player and ghosts with proper starting positions
   const player = useRef(new Player(PLAYER_START_X, PLAYER_START_Y));
   const ghosts = useRef([
     new Ghost(GhostType.BLINKY, 14, 11),  // Red ghost - now random
@@ -191,16 +190,13 @@ const GameCanvas: React.FC = () => {
   };
   
   const canMove = (x: number, y: number): boolean => {
-    // Handle tunnel wrapping - this allows movement through the side tunnels
     if (x < 0) return true;
     if (x >= GRID_WIDTH) return true;
     
-    // Check if we're out of bounds for vertical walls
     if (y < 0 || y >= GRID_HEIGHT) {
       return false;
     }
     
-    // Check if there's a wall or ghost door in the way
     const cell = gameBoard.current[y][x];
     return cell !== CellType.WALL && cell !== CellType.GHOST_DOOR;
   };
@@ -259,10 +255,8 @@ const GameCanvas: React.FC = () => {
   };
   
   const update = (deltaTime: number) => {
-    // Only update if the game is actually playing
     if (gameState !== GameState.PLAYING) return;
     
-    // Update player
     const playerDidMove = player.current.update(
       deltaTime, 
       lastDirection.current, 
@@ -278,7 +272,6 @@ const GameCanvas: React.FC = () => {
     
     const currentTime = Date.now();
     
-    // Update all ghosts
     ghosts.current.forEach(ghost => {
       ghost.update(
         deltaTime,
@@ -288,7 +281,6 @@ const GameCanvas: React.FC = () => {
         currentTime
       );
       
-      // Handle tunnel wrapping for ghosts
       if (ghost.x < 0) {
         ghost.x = GRID_WIDTH - 1;
       } else if (ghost.x >= GRID_WIDTH) {
@@ -308,7 +300,6 @@ const GameCanvas: React.FC = () => {
     
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    // Draw maze
     for (let y = 0; y < GRID_HEIGHT; y++) {
       for (let x = 0; x < GRID_WIDTH; x++) {
         const cellType = gameBoard.current[y][x];
@@ -348,7 +339,6 @@ const GameCanvas: React.FC = () => {
       }
     }
     
-    // Draw ghosts - make sure to draw them before player so player appears on top
     ghosts.current.forEach(ghost => {
       const drawX = ghost.x * CELL_SIZE;
       const drawY = ghost.y * CELL_SIZE;
@@ -379,50 +369,48 @@ const GameCanvas: React.FC = () => {
         }
       }
       
-      // Draw ghost body - now twice as large
       ctx.fillStyle = ghostColor;
       ctx.beginPath();
       ctx.arc(
         drawX + CELL_SIZE / 2,
-        drawY + CELL_SIZE / 2 - 2,
-        CELL_SIZE - 2, // Doubled from CELL_SIZE / 2 - 2
+        drawY + CELL_SIZE / 2 - 5,
+        CELL_SIZE * 2.5 - 5,
         Math.PI,
         0,
         false
       );
       
-      const waveAmplitude = 4; // Doubled from 2
-      const waveWidth = CELL_SIZE / 3; // Increased from CELL_SIZE / 6
+      const waveAmplitude = 10;
+      const waveWidth = CELL_SIZE * 5/6;
       
-      ctx.lineTo(drawX + CELL_SIZE * 2, drawY + CELL_SIZE / 2 + 2); // Extended to match larger size
+      ctx.lineTo(drawX + CELL_SIZE * 5, drawY + CELL_SIZE / 2 + 5);
       
       for (let i = 0; i < 3; i++) {
-        const startX = drawX + CELL_SIZE * 2 - (i * waveWidth);
+        const startX = drawX + CELL_SIZE * 5 - (i * waveWidth);
         ctx.quadraticCurveTo(
           startX - waveWidth / 2,
-          drawY + CELL_SIZE / 2 + waveAmplitude + 2,
+          drawY + CELL_SIZE / 2 + waveAmplitude + 5,
           startX - waveWidth,
-          drawY + CELL_SIZE / 2 + 2
+          drawY + CELL_SIZE / 2 + 5
         );
       }
       
-      ctx.lineTo(drawX - CELL_SIZE, drawY + CELL_SIZE / 2 - 2); // Extended to match larger size
+      ctx.lineTo(drawX - CELL_SIZE * 2.5, drawY + CELL_SIZE / 2 - 5);
       ctx.fill();
       
-      // Draw ghost eyes - also scaled up
       ctx.fillStyle = '#FFFFFF';
       ctx.beginPath();
       ctx.arc(
         drawX + CELL_SIZE / 3,
-        drawY + CELL_SIZE / 2 - 2,
-        CELL_SIZE / 3, // Doubled from CELL_SIZE / 6
+        drawY + CELL_SIZE / 2 - 5,
+        CELL_SIZE * 5/6,
         0,
         Math.PI * 2
       );
       ctx.arc(
-        drawX + (CELL_SIZE * 2) / 3 + CELL_SIZE / 2, // Adjusted for new ghost size
-        drawY + CELL_SIZE / 2 - 2,
-        CELL_SIZE / 3, // Doubled from CELL_SIZE / 6
+        drawX + (CELL_SIZE * 2) / 3 + CELL_SIZE * 1.25,
+        drawY + CELL_SIZE / 2 - 5,
+        CELL_SIZE * 5/6,
         0,
         Math.PI * 2
       );
@@ -432,37 +420,36 @@ const GameCanvas: React.FC = () => {
         ctx.fillStyle = '#0000FF';
         
         let leftPupilX = drawX + CELL_SIZE / 3;
-        let leftPupilY = drawY + CELL_SIZE / 2 - 2;
-        let rightPupilX = drawX + (CELL_SIZE * 2) / 3 + CELL_SIZE / 2; // Adjusted for new ghost size
-        let rightPupilY = drawY + CELL_SIZE / 2 - 2;
+        let leftPupilY = drawY + CELL_SIZE / 2 - 5;
+        let rightPupilX = drawX + (CELL_SIZE * 2) / 3 + CELL_SIZE * 1.25;
+        let rightPupilY = drawY + CELL_SIZE / 2 - 5;
         
         switch (ghost.direction) {
           case Direction.UP:
-            leftPupilY -= 4; // Doubled from 2
-            rightPupilY -= 4; // Doubled from 2
+            leftPupilY -= 10;
+            rightPupilY -= 10;
             break;
           case Direction.DOWN:
-            leftPupilY += 4; // Doubled from 2
-            rightPupilY += 4; // Doubled from 2
+            leftPupilY += 10;
+            rightPupilY += 10;
             break;
           case Direction.LEFT:
-            leftPupilX -= 4; // Doubled from 2
-            rightPupilX -= 4; // Doubled from 2
+            leftPupilX -= 10;
+            rightPupilX -= 10;
             break;
           case Direction.RIGHT:
-            leftPupilX += 4; // Doubled from 2
-            rightPupilX += 4; // Doubled from 2
+            leftPupilX += 10;
+            rightPupilX += 10;
             break;
         }
         
         ctx.beginPath();
-        ctx.arc(leftPupilX, leftPupilY, CELL_SIZE / 5, 0, Math.PI * 2); // Doubled from CELL_SIZE / 10
-        ctx.arc(rightPupilX, rightPupilY, CELL_SIZE / 5, 0, Math.PI * 2); // Doubled from CELL_SIZE / 10
+        ctx.arc(leftPupilX, leftPupilY, CELL_SIZE * 5/10, 0, Math.PI * 2);
+        ctx.arc(rightPupilX, rightPupilY, CELL_SIZE * 5/10, 0, Math.PI * 2);
         ctx.fill();
       }
     });
     
-    // Draw player
     const drawX = player.current.x * CELL_SIZE;
     const drawY = player.current.y * CELL_SIZE;
     
@@ -499,14 +486,13 @@ const GameCanvas: React.FC = () => {
     ctx.arc(
       drawX + CELL_SIZE / 2,
       drawY + CELL_SIZE / 2,
-      CELL_SIZE - 1, // Doubled from CELL_SIZE / 2 - 1
+      CELL_SIZE * 2.5 - 1,
       startAngle,
       endAngle
     );
     ctx.lineTo(drawX + CELL_SIZE / 2, drawY + CELL_SIZE / 2);
     ctx.fill();
     
-    // Draw game state overlays
     if (gameState === GameState.MENU) {
       drawMenu(ctx, canvas.width, canvas.height);
     } else if (gameState === GameState.GAME_OVER) {
@@ -517,7 +503,6 @@ const GameCanvas: React.FC = () => {
       drawWin(ctx, canvas.width, canvas.height);
     }
   };
-  
   
   const drawMenu = (ctx: CanvasRenderingContext2D, width: number, height: number) => {
     ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
