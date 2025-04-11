@@ -452,9 +452,9 @@ const GameCanvas: React.FC = () => {
       }
     });
     
-    // Make sure to use the exact coordinates for proper centering
-    const drawX = (player.current.x - 0.5) * CELL_SIZE;
-    const drawY = (player.current.y - 0.5) * CELL_SIZE;
+    // Draw Pac-Man - corrected positioning to be perfectly centered in corridors
+    const drawX = player.current.x * CELL_SIZE - pacmanSize;
+    const drawY = player.current.y * CELL_SIZE - pacmanSize;
     
     let startAngle = 0.2 * Math.PI;
     let endAngle = 1.8 * Math.PI;
@@ -489,13 +489,13 @@ const GameCanvas: React.FC = () => {
     ctx.fillStyle = '#FFFF00';
     ctx.beginPath();
     ctx.arc(
-      drawX + CELL_SIZE,
-      drawY + CELL_SIZE,
-      pacmanSize,
+      drawX + pacmanSize,
+      drawY + pacmanSize,
+      pacmanSize * 0.35, // 35% of the size
       startAngle,
       endAngle
     );
-    ctx.lineTo(drawX + CELL_SIZE, drawY + CELL_SIZE);
+    ctx.lineTo(drawX + pacmanSize, drawY + pacmanSize);
     ctx.fill();
     
     if (gameState === GameState.MENU) {
