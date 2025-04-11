@@ -1,4 +1,3 @@
-
 import { 
   Direction, 
   GhostType, 
@@ -33,7 +32,7 @@ export class Ghost {
     this.x = x;
     this.y = y;
     this.direction = Direction.UP;
-    this.state = GhostState.SCATTER;
+    this.state = GhostState.CHASE;
     this.speed = GHOST_SPEED;
     this.targetX = 0;
     this.targetY = 0;
@@ -335,33 +334,30 @@ export class Ghost {
         
       case GhostType.PINKY:
         // Pinky targets 4 tiles ahead of the player's direction
-        const offsetX = playerPos.x;
-        const offsetY = playerPos.y;
+        let offsetX = playerPos.x;
+        let offsetY = playerPos.y;
         
         // Calculate offset based on player direction
         // In the original game, there was a bug where UP direction would also
         // apply an offset to the left, we're recreating that bug here
         switch (this.direction) {
           case Direction.UP:
-            this.targetX = offsetX - 4; // The -4 here is the famous Pac-Man bug
-            this.targetY = offsetY - 4;
+            offsetX -= 4; // The -4 here is the famous Pac-Man bug
+            offsetY -= 4;
             break;
           case Direction.DOWN:
-            this.targetX = offsetX;
-            this.targetY = offsetY + 4;
+            offsetY += 4;
             break;
           case Direction.LEFT:
-            this.targetX = offsetX - 4;
-            this.targetY = offsetY;
+            offsetX -= 4;
             break;
           case Direction.RIGHT:
-            this.targetX = offsetX + 4;
-            this.targetY = offsetY;
+            offsetX += 4;
             break;
-          default:
-            this.targetX = offsetX;
-            this.targetY = offsetY;
         }
+        
+        this.targetX = offsetX;
+        this.targetY = offsetY;
         break;
         
       case GhostType.INKY:

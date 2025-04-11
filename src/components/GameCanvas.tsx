@@ -1,3 +1,4 @@
+
 import React, { useRef, useEffect, useState } from 'react';
 import { 
   GRID_WIDTH, 
@@ -250,6 +251,7 @@ const GameCanvas: React.FC = () => {
   };
   
   const update = (deltaTime: number) => {
+    // Update player
     const playerDidMove = player.current.update(
       deltaTime, 
       lastDirection.current, 
@@ -262,6 +264,7 @@ const GameCanvas: React.FC = () => {
       
       collectItem(Math.floor(player.current.x), Math.floor(player.current.y));
       
+      // Handle tunnel wrapping
       if (player.current.x < 0) {
         player.current.x = GRID_WIDTH - 1;
       } else if (player.current.x >= GRID_WIDTH) {
@@ -269,6 +272,7 @@ const GameCanvas: React.FC = () => {
       }
     }
     
+    // Update all ghosts
     ghosts.current.forEach(ghost => {
       ghost.update(
         deltaTime,
@@ -277,6 +281,7 @@ const GameCanvas: React.FC = () => {
         powerMode.current
       );
       
+      // Handle tunnel wrapping for ghosts
       if (ghost.x < 0) {
         ghost.x = GRID_WIDTH - 1;
       } else if (ghost.x >= GRID_WIDTH) {
