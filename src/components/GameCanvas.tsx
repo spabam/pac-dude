@@ -369,48 +369,50 @@ const GameCanvas: React.FC = () => {
         }
       }
       
+      const ghostSize = CELL_SIZE * 0.875;
+      
       ctx.fillStyle = ghostColor;
       ctx.beginPath();
       ctx.arc(
         drawX + CELL_SIZE / 2,
-        drawY + CELL_SIZE / 2 - 5,
-        CELL_SIZE * 2.5 - 5,
+        drawY + CELL_SIZE / 2 - 2,
+        ghostSize,
         Math.PI,
         0,
         false
       );
       
-      const waveAmplitude = 10;
-      const waveWidth = CELL_SIZE * 5/6;
+      const waveAmplitude = 3.5;
+      const waveWidth = CELL_SIZE * 0.3;
       
-      ctx.lineTo(drawX + CELL_SIZE * 5, drawY + CELL_SIZE / 2 + 5);
+      ctx.lineTo(drawX + CELL_SIZE * 1.75, drawY + CELL_SIZE / 2 + 2);
       
       for (let i = 0; i < 3; i++) {
-        const startX = drawX + CELL_SIZE * 5 - (i * waveWidth);
+        const startX = drawX + CELL_SIZE * 1.75 - (i * waveWidth);
         ctx.quadraticCurveTo(
           startX - waveWidth / 2,
-          drawY + CELL_SIZE / 2 + waveAmplitude + 5,
+          drawY + CELL_SIZE / 2 + waveAmplitude + 2,
           startX - waveWidth,
-          drawY + CELL_SIZE / 2 + 5
+          drawY + CELL_SIZE / 2 + 2
         );
       }
       
-      ctx.lineTo(drawX - CELL_SIZE * 2.5, drawY + CELL_SIZE / 2 - 5);
+      ctx.lineTo(drawX - CELL_SIZE * 0.875, drawY + CELL_SIZE / 2 - 2);
       ctx.fill();
       
       ctx.fillStyle = '#FFFFFF';
       ctx.beginPath();
       ctx.arc(
         drawX + CELL_SIZE / 3,
-        drawY + CELL_SIZE / 2 - 5,
-        CELL_SIZE * 5/6,
+        drawY + CELL_SIZE / 2 - 2,
+        CELL_SIZE * 0.3,
         0,
         Math.PI * 2
       );
       ctx.arc(
-        drawX + (CELL_SIZE * 2) / 3 + CELL_SIZE * 1.25,
-        drawY + CELL_SIZE / 2 - 5,
-        CELL_SIZE * 5/6,
+        drawX + (CELL_SIZE * 2) / 3 + CELL_SIZE * 0.44,
+        drawY + CELL_SIZE / 2 - 2,
+        CELL_SIZE * 0.3,
         0,
         Math.PI * 2
       );
@@ -420,32 +422,32 @@ const GameCanvas: React.FC = () => {
         ctx.fillStyle = '#0000FF';
         
         let leftPupilX = drawX + CELL_SIZE / 3;
-        let leftPupilY = drawY + CELL_SIZE / 2 - 5;
-        let rightPupilX = drawX + (CELL_SIZE * 2) / 3 + CELL_SIZE * 1.25;
-        let rightPupilY = drawY + CELL_SIZE / 2 - 5;
+        let leftPupilY = drawY + CELL_SIZE / 2 - 2;
+        let rightPupilX = drawX + (CELL_SIZE * 2) / 3 + CELL_SIZE * 0.44;
+        let rightPupilY = drawY + CELL_SIZE / 2 - 2;
         
         switch (ghost.direction) {
           case Direction.UP:
-            leftPupilY -= 10;
-            rightPupilY -= 10;
+            leftPupilY -= 3.5;
+            rightPupilY -= 3.5;
             break;
           case Direction.DOWN:
-            leftPupilY += 10;
-            rightPupilY += 10;
+            leftPupilY += 3.5;
+            rightPupilY += 3.5;
             break;
           case Direction.LEFT:
-            leftPupilX -= 10;
-            rightPupilX -= 10;
+            leftPupilX -= 3.5;
+            rightPupilX -= 3.5;
             break;
           case Direction.RIGHT:
-            leftPupilX += 10;
-            rightPupilX += 10;
+            leftPupilX += 3.5;
+            rightPupilX += 3.5;
             break;
         }
         
         ctx.beginPath();
-        ctx.arc(leftPupilX, leftPupilY, CELL_SIZE * 5/10, 0, Math.PI * 2);
-        ctx.arc(rightPupilX, rightPupilY, CELL_SIZE * 5/10, 0, Math.PI * 2);
+        ctx.arc(leftPupilX, leftPupilY, CELL_SIZE * 0.175, 0, Math.PI * 2);
+        ctx.arc(rightPupilX, rightPupilY, CELL_SIZE * 0.175, 0, Math.PI * 2);
         ctx.fill();
       }
     });
@@ -481,12 +483,14 @@ const GameCanvas: React.FC = () => {
     startAngle = startAngle * t;
     endAngle = endAngle + ((2 * Math.PI - endAngle) * (1 - t));
     
+    const pacmanSize = CELL_SIZE * 0.875;
+    
     ctx.fillStyle = '#FFFF00';
     ctx.beginPath();
     ctx.arc(
       drawX + CELL_SIZE / 2,
       drawY + CELL_SIZE / 2,
-      CELL_SIZE * 2.5 - 1,
+      pacmanSize,
       startAngle,
       endAngle
     );
