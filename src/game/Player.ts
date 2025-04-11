@@ -53,19 +53,22 @@ export class Player {
     let moved = false;
 
     // More forgiving tolerance for checking if centered on an axis
-    // Increased from 0.4 to 0.48 to make turning even easier
+    // Increased from 0.48 to 0.65 to make turning even easier
     const isCentered = (axis: 'x' | 'y'): boolean => {
       const value = axis === 'x' ? this.x : this.y;
-      return Math.abs(value - Math.floor(value) - 0.5) < 0.48;
+      return Math.abs(value - Math.floor(value) - 0.5) < 0.65;
     };
 
-    // Force initial movement if we're still at starting position and direction is none
+    // CRITICAL FIX: Force initial movement if still at starting position
     if (this.direction === Direction.NONE && nextDirection !== Direction.NONE) {
       if (this.canChangeDirection(nextDirection, canMoveFn)) {
         this.direction = nextDirection;
         // Force snap to grid center
         this.x = Math.floor(this.x) + 0.5;
         this.y = Math.floor(this.y) + 0.5;
+        
+        // Debug log for initial movement
+        console.log("Initial movement set to:", this.direction);
       }
     }
 
@@ -77,6 +80,8 @@ export class Player {
           // Snap to y-axis grid line when turning left/right
           this.y = Math.floor(this.y) + 0.5;
           this.direction = nextDirection;
+          // Debug log for horizontal turns
+          console.log("Horizontal turn to:", this.direction);
         }
       }
       // For vertical turns (up/down), player should be centered on x-axis
@@ -85,6 +90,8 @@ export class Player {
           // Snap to x-axis grid line when turning up/down
           this.x = Math.floor(this.x) + 0.5;
           this.direction = nextDirection;
+          // Debug log for vertical turns
+          console.log("Vertical turn to:", this.direction);
         }
       }
     }
@@ -98,31 +105,35 @@ export class Player {
       // Try to apply nextDirection at cell centers
       if (nextDirection !== Direction.NONE && this.canChangeDirection(nextDirection, canMoveFn)) {
         this.direction = nextDirection;
+        // Debug log for direction change at cell center
+        console.log("Direction change at cell center:", this.direction);
       } 
       // If we can't move in current direction, stop
       else if (this.direction !== Direction.NONE && !this.canMoveInCurrentDirection(canMoveFn)) {
         this.direction = Direction.NONE;
+        // Debug log for stopping
+        console.log("Stopping due to wall");
       }
     }
     
     // Extra aggressive wall corner turn handling for better responsiveness
     this.handleWallCornerTurns(nextDirection, canMoveFn);
     
-    // Move player based on current direction with improved centering
+    // IMPROVED: Move player based on current direction with more aggressive centering
     switch (this.direction) {
       case Direction.UP:
         if (canMoveFn(Math.floor(this.x), Math.floor(this.y - moveDistance))) {
           this.y -= moveDistance;
           
           // Very aggressive center snapping on X axis while moving vertically
-          if (Math.abs(this.x - Math.floor(this.x) - 0.5) < 0.1) {
+          if (Math.abs(this.x - Math.floor(this.x) - 0.5) < 0.2) {
             this.x = Math.floor(this.x) + 0.5; // Perfect centering
           }
           // Aggressive gradual centering - pull toward center while moving
           else if (this.x > Math.floor(this.x) + 0.5) {
-            this.x = Math.max(this.x - 0.2, Math.floor(this.x) + 0.5);
+            this.x = Math.max(this.x - 0.3, Math.floor(this.x) + 0.5); // Increased correction speed
           } else if (this.x < Math.floor(this.x) + 0.5) {
-            this.x = Math.min(this.x + 0.2, Math.floor(this.x) + 0.5);
+            this.x = Math.min(this.x + 0.3, Math.floor(this.x) + 0.5); // Increased correction speed
           }
           
           moved = true;
@@ -130,6 +141,7 @@ export class Player {
           // Align with grid when stopped at a wall
           this.y = Math.ceil(this.y);
           this.direction = Direction.NONE;
+          console.log("Hit wall going UP, stopping");
         }
         break;
         
@@ -138,14 +150,14 @@ export class Player {
           this.y += moveDistance;
           
           // Very aggressive center snapping on X axis while moving vertically
-          if (Math.abs(this.x - Math.floor(this.x) - 0.5) < 0.1) {
+          if (Math.abs(this.x - Math.floor(this.x) - 0.5) < 0.2) {
             this.x = Math.floor(this.x) + 0.5; // Perfect centering
           }
           // Aggressive gradual centering - pull toward center while moving
           else if (this.x > Math.floor(this.x) + 0.5) {
-            this.x = Math.max(this.x - 0.2, Math.floor(this.x) + 0.5);
+            this.x = Math.max(this.x - 0.3, Math.floor(this.x) + 0.5); // Increased correction speed
           } else if (this.x < Math.floor(this.x) + 0.5) {
-            this.x = Math.min(this.x + 0.2, Math.floor(this.x) + 0.5);
+            this.x = Math.min(this.x + 0.3, Math.floor(this.x) + 0.5); // Increased correction speed
           }
           
           moved = true;
@@ -153,6 +165,7 @@ export class Player {
           // Align with grid when stopped at a wall
           this.y = Math.floor(this.y);
           this.direction = Direction.NONE;
+          console.log("Hit wall going DOWN, stopping");
         }
         break;
         
@@ -161,14 +174,14 @@ export class Player {
           this.x -= moveDistance;
           
           // Very aggressive center snapping on Y axis while moving horizontally
-          if (Math.abs(this.y - Math.floor(this.y) - 0.5) < 0.1) {
+          if (Math.abs(this.y - Math.floor(this.y) - 0.5) < 0.2) {
             this.y = Math.floor(this.y) + 0.5; // Perfect centering
           }
           // Aggressive gradual centering - pull toward center while moving
           else if (this.y > Math.floor(this.y) + 0.5) {
-            this.y = Math.max(this.y - 0.2, Math.floor(this.y) + 0.5);
+            this.y = Math.max(this.y - 0.3, Math.floor(this.y) + 0.5); // Increased correction speed
           } else if (this.y < Math.floor(this.y) + 0.5) {
-            this.y = Math.min(this.y + 0.2, Math.floor(this.y) + 0.5);
+            this.y = Math.min(this.y + 0.3, Math.floor(this.y) + 0.5); // Increased correction speed
           }
           
           moved = true;
@@ -176,6 +189,7 @@ export class Player {
           // Align with grid when stopped at a wall
           this.x = Math.ceil(this.x);
           this.direction = Direction.NONE;
+          console.log("Hit wall going LEFT, stopping");
         }
         break;
         
@@ -184,14 +198,14 @@ export class Player {
           this.x += moveDistance;
           
           // Very aggressive center snapping on Y axis while moving horizontally
-          if (Math.abs(this.y - Math.floor(this.y) - 0.5) < 0.1) {
+          if (Math.abs(this.y - Math.floor(this.y) - 0.5) < 0.2) {
             this.y = Math.floor(this.y) + 0.5; // Perfect centering
           }
           // Aggressive gradual centering - pull toward center while moving
           else if (this.y > Math.floor(this.y) + 0.5) {
-            this.y = Math.max(this.y - 0.2, Math.floor(this.y) + 0.5);
+            this.y = Math.max(this.y - 0.3, Math.floor(this.y) + 0.5); // Increased correction speed
           } else if (this.y < Math.floor(this.y) + 0.5) {
-            this.y = Math.min(this.y + 0.2, Math.floor(this.y) + 0.5);
+            this.y = Math.min(this.y + 0.3, Math.floor(this.y) + 0.5); // Increased correction speed
           }
           
           moved = true;
@@ -199,6 +213,7 @@ export class Player {
           // Align with grid when stopped at a wall
           this.x = Math.floor(this.x);
           this.direction = Direction.NONE;
+          console.log("Hit wall going RIGHT, stopping");
         }
         break;
     }
@@ -209,6 +224,9 @@ export class Player {
     } else if (this.x >= GRID_WIDTH) {
       this.x = 0.5;
     }
+
+    // Debug current position and direction
+    console.log(`Position: (${this.x.toFixed(2)}, ${this.y.toFixed(2)}), Direction: ${this.direction}, Moved: ${moved}`);
 
     return moved;
   }
@@ -244,9 +262,9 @@ export class Player {
       }
     };
     
-    // More aggressive wall corner detection with less strict tolerances
-    const nearCell = Math.abs(this.x - Math.floor(this.x) - 0.5) < 0.4 &&
-                    Math.abs(this.y - Math.floor(this.y) - 0.5) < 0.4;
+    // IMPROVED: More aggressive wall corner detection with relaxed tolerances
+    const nearCell = Math.abs(this.x - Math.floor(this.x) - 0.5) < 0.65 &&
+                    Math.abs(this.y - Math.floor(this.y) - 0.5) < 0.65;
     
     if (nearCell && (hasWallAhead() || this.direction === Direction.NONE) && nextDirection !== this.direction) {
       if (canTurn(nextDirection)) {
@@ -256,6 +274,7 @@ export class Player {
           // Snap to center of cell x-axis
           this.x = Math.floor(this.x) + 0.5;
           this.direction = nextDirection;
+          console.log("Corner turn horizontal->vertical:", this.direction);
         }
         // When turning from vertical to horizontal movement
         else if ((this.direction === Direction.UP || this.direction === Direction.DOWN) && 
@@ -263,6 +282,15 @@ export class Player {
           // Snap to center of cell y-axis
           this.y = Math.floor(this.y) + 0.5;
           this.direction = nextDirection;
+          console.log("Corner turn vertical->horizontal:", this.direction);
+        }
+        // ADDED: Also handle transition from NONE to any direction
+        else if (this.direction === Direction.NONE) {
+          // Snap to center of cell
+          this.x = Math.floor(this.x) + 0.5;
+          this.y = Math.floor(this.y) + 0.5;
+          this.direction = nextDirection;
+          console.log("Starting movement from corner:", this.direction);
         }
       }
     }
