@@ -1,3 +1,4 @@
+
 import { 
   Direction, 
   GhostType, 
@@ -35,8 +36,8 @@ export class Ghost {
     this.y = Math.floor(y) + 0.5;
     this.direction = Direction.UP;
     
-    // Only Blinky (red ghost) will chase, others will move randomly
-    this.state = type === GhostType.BLINKY ? GhostState.CHASE : GhostState.RANDOM;
+    // Set all ghosts to RANDOM state initially
+    this.state = GhostState.RANDOM;
     
     this.speed = GHOST_SPEED;
     this.targetX = 0;

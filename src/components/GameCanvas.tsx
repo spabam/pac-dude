@@ -37,10 +37,10 @@ const GameCanvas: React.FC = () => {
   // Initialize player and ghosts with proper starting positions
   const player = useRef(new Player(PLAYER_START_X, PLAYER_START_Y));
   const ghosts = useRef([
-    new Ghost(GhostType.BLINKY, 14, 11),  // Red ghost
-    new Ghost(GhostType.PINKY, 14, 14),   // Pink ghost
-    new Ghost(GhostType.INKY, 12, 14),    // Cyan ghost
-    new Ghost(GhostType.CLYDE, 16, 14)    // Orange ghost
+    new Ghost(GhostType.BLINKY, 14, 11),  // Red ghost - now random
+    new Ghost(GhostType.PINKY, 14, 14),   // Pink ghost - random
+    new Ghost(GhostType.INKY, 12, 14),    // Cyan ghost - random
+    new Ghost(GhostType.CLYDE, 16, 14)    // Orange ghost - random
   ]);
   
   const gameBoard = useRef<number[][]>(JSON.parse(JSON.stringify(mazeLayout)));
@@ -129,10 +129,10 @@ const GameCanvas: React.FC = () => {
   const resetGame = () => {
     player.current = new Player(PLAYER_START_X, PLAYER_START_Y);
     ghosts.current = [
-      new Ghost(GhostType.BLINKY, 14, 11),  // Red ghost - will chase player
-      new Ghost(GhostType.PINKY, 14, 14),   // Pink ghost - will move randomly
-      new Ghost(GhostType.INKY, 12, 14),    // Cyan ghost - will move randomly
-      new Ghost(GhostType.CLYDE, 16, 14)    // Orange ghost - will move randomly
+      new Ghost(GhostType.BLINKY, 14, 11),  // All ghosts will move randomly
+      new Ghost(GhostType.PINKY, 14, 14),   
+      new Ghost(GhostType.INKY, 12, 14),    
+      new Ghost(GhostType.CLYDE, 16, 14)    
     ];
     
     gameBoard.current = JSON.parse(JSON.stringify(mazeLayout));
@@ -155,10 +155,10 @@ const GameCanvas: React.FC = () => {
   const resetLevel = () => {
     player.current = new Player(PLAYER_START_X, PLAYER_START_Y);
     ghosts.current = [
-      new Ghost(GhostType.BLINKY, 14, 11),  // Red ghost - will chase player
-      new Ghost(GhostType.PINKY, 14, 14),   // Pink ghost - will move randomly
-      new Ghost(GhostType.INKY, 12, 14),    // Cyan ghost - will move randomly
-      new Ghost(GhostType.CLYDE, 16, 14)    // Orange ghost - will move randomly
+      new Ghost(GhostType.BLINKY, 14, 11),  // All ghosts will move randomly
+      new Ghost(GhostType.PINKY, 14, 14),   
+      new Ghost(GhostType.INKY, 12, 14),    
+      new Ghost(GhostType.CLYDE, 16, 14)    
     ];
     
     lastDirection.current = Direction.NONE;
