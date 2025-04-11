@@ -54,8 +54,8 @@ export class Player {
 
     // Check if at grid alignment point (cell center)
     const isAtCellCenter = 
-      Math.abs(this.x - Math.floor(this.x) - 0.5) < 0.05 && 
-      Math.abs(this.y - Math.floor(this.y) - 0.5) < 0.05;
+      Math.abs(this.x - Math.floor(this.x) - 0.5) < 0.01 && 
+      Math.abs(this.y - Math.floor(this.y) - 0.5) < 0.01;
 
     // At cell centers, we can change direction more reliably
     if (isAtCellCenter) {
@@ -73,70 +73,81 @@ export class Player {
                this.canChangeDirection(currentDirection, canMoveFn)) {
         this.direction = currentDirection;
       }
-    } else {
-      // Between cell centers, only try changing direction if we're at the first movement
-      // or we're very close to a cell center
-      if (this.direction === Direction.NONE) {
-        if (nextDirection !== Direction.NONE && this.canChangeDirection(nextDirection, canMoveFn)) {
-          this.direction = nextDirection;
-        }
+    } else if (this.direction === Direction.NONE) {
+      // If we're not moving yet, only try changing direction if next direction is valid
+      if (nextDirection !== Direction.NONE && this.canChangeDirection(nextDirection, canMoveFn)) {
+        // Snap to grid before starting movement for better alignment
+        this.x = Math.floor(this.x) + 0.5;
+        this.y = Math.floor(this.y) + 0.5;
+        this.direction = nextDirection;
       }
     }
 
     // Move player based on current direction
     switch (this.direction) {
       case Direction.UP:
-        if (canMoveFn(Math.floor(this.x), Math.floor(this.y - 0.1))) {
+        if (canMoveFn(Math.floor(this.x), Math.floor(this.y - 0.5))) {
           this.y -= moveDistance;
           
-          // Ensure we stay centered on the x-axis while moving vertically
+          // Ensure we stay perfectly centered on the x-axis while moving vertically
           this.x = Math.floor(this.x) + 0.5;
           
           moved = true;
         } else {
-          // Align to grid if hitting a wall
-          this.y = Math.floor(this.y) + 0.5;
+          // If we can't move up, align precisely to the grid
+          this.y = Math.ceil(this.y - 0.01) + 0.5;
+          this.direction = Direction.NONE;
         }
         break;
       case Direction.DOWN:
-        if (canMoveFn(Math.floor(this.x), Math.floor(this.y + 1))) {
+        if (canMoveFn(Math.floor(this.x), Math.ceil(this.y))) {
           this.y += moveDistance;
           
-          // Ensure we stay centered on the x-axis while moving vertically
+          // Ensure we stay perfectly centered on the x-axis while moving vertically
           this.x = Math.floor(this.x) + 0.5;
           
           moved = true;
         } else {
-          // Align to grid if hitting a wall
-          this.y = Math.floor(this.y) + 0.5;
+          // If we can't move down, align precisely to the grid
+          this.y = Math.floor(this.y + 0.01) - 0.5;
+          this.direction = Direction.NONE;
         }
         break;
       case Direction.LEFT:
-        if (canMoveFn(Math.floor(this.x - 0.1), Math.floor(this.y))) {
+        if (canMoveFn(Math.floor(this.x - 0.5), Math.floor(this.y))) {
           this.x -= moveDistance;
           
-          // Ensure we stay centered on the y-axis while moving horizontally
+          // Ensure we stay perfectly centered on the y-axis while moving horizontally
           this.y = Math.floor(this.y) + 0.5;
           
           moved = true;
         } else {
-          // Align to grid if hitting a wall
-          this.x = Math.floor(this.x) + 0.5;
+          // If we can't move left, align precisely to the grid
+          this.x = Math.ceil(this.x - 0.01) + 0.5;
+          this.direction = Direction.NONE;
         }
         break;
       case Direction.RIGHT:
-        if (canMoveFn(Math.floor(this.x + 1), Math.floor(this.y))) {
+        if (canMoveFn(Math.ceil(this.x), Math.floor(this.y))) {
           this.x += moveDistance;
           
-          // Ensure we stay centered on the y-axis while moving horizontally
+          // Ensure we stay perfectly centered on the y-axis while moving horizontally
           this.y = Math.floor(this.y) + 0.5;
           
           moved = true;
         } else {
-          // Align to grid if hitting a wall
-          this.x = Math.floor(this.x) + 0.5;
+          // If we can't move right, align precisely to the grid
+          this.x = Math.floor(this.x + 0.01) - 0.5;
+          this.direction = Direction.NONE;
         }
         break;
+    }
+
+    // Handle tunnel wrap-around
+    if (this.x < 0) {
+      this.x = Math.floor(GRID_WIDTH) - 0.5;
+    } else if (this.x >= GRID_WIDTH) {
+      this.x = 0.5;
     }
 
     return moved;
