@@ -452,6 +452,9 @@ const GameCanvas: React.FC = () => {
       }
     });
     
+    // Define pacmanSize before using it
+    const pacmanSize = CELL_SIZE * 0.875;
+    
     // Draw Pac-Man - corrected positioning to be perfectly centered in corridors
     const drawX = player.current.x * CELL_SIZE - pacmanSize;
     const drawY = player.current.y * CELL_SIZE - pacmanSize;
@@ -483,8 +486,6 @@ const GameCanvas: React.FC = () => {
     
     startAngle = startAngle * t;
     endAngle = endAngle + ((2 * Math.PI - endAngle) * (1 - t));
-    
-    const pacmanSize = CELL_SIZE * 0.875;
     
     ctx.fillStyle = '#FFFF00';
     ctx.beginPath();
