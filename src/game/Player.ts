@@ -55,8 +55,8 @@ export class Player {
     // Check if player is near a cell center (for turning)
     const isCentered = (axis: 'x' | 'y'): boolean => {
       const value = axis === 'x' ? this.x : this.y;
-      // Even more forgiving tolerance for checking if centered on an axis
-      return Math.abs(value - Math.floor(value) - 0.5) < 0.25;
+      // More forgiving tolerance for checking if centered on an axis (increased from 0.25 to 0.3)
+      return Math.abs(value - Math.floor(value) - 0.5) < 0.3;
     };
 
     // Check if at or near grid alignment point (cell center)
@@ -110,13 +110,12 @@ export class Player {
       }
     }
 
-    // Special case for corner turns
-    this.handleCornerTurns(nextDirection, canMoveFn, isCentered);
+    // Handle all corner turns
+    this.handleAllCornerTurns(nextDirection, canMoveFn, isCentered);
     
-    // Move player based on current direction
+    // Move player based on current direction - increased movement fidelity
     switch (this.direction) {
       case Direction.UP:
-        // Check if we can move up
         if (canMoveFn(Math.floor(this.x), Math.floor(this.y - moveDistance))) {
           this.y -= moveDistance;
           
@@ -127,13 +126,12 @@ export class Player {
           
           moved = true;
         } else {
-          // Align with grid when stopped
+          // Align with grid when stopped at a wall
           this.y = Math.ceil(this.y);
           this.direction = Direction.NONE;
         }
         break;
       case Direction.DOWN:
-        // Check if we can move down
         if (canMoveFn(Math.floor(this.x), Math.floor(this.y + moveDistance))) {
           this.y += moveDistance;
           
@@ -144,13 +142,12 @@ export class Player {
           
           moved = true;
         } else {
-          // Align with grid when stopped
+          // Align with grid when stopped at a wall
           this.y = Math.floor(this.y);
           this.direction = Direction.NONE;
         }
         break;
       case Direction.LEFT:
-        // Check if we can move left
         if (canMoveFn(Math.floor(this.x - moveDistance), Math.floor(this.y))) {
           this.x -= moveDistance;
           
@@ -161,13 +158,12 @@ export class Player {
           
           moved = true;
         } else {
-          // Align with grid when stopped
+          // Align with grid when stopped at a wall
           this.x = Math.ceil(this.x);
           this.direction = Direction.NONE;
         }
         break;
       case Direction.RIGHT:
-        // Check if we can move right
         if (canMoveFn(Math.floor(this.x + moveDistance), Math.floor(this.y))) {
           this.x += moveDistance;
           
@@ -178,7 +174,7 @@ export class Player {
           
           moved = true;
         } else {
-          // Align with grid when stopped
+          // Align with grid when stopped at a wall
           this.x = Math.floor(this.x);
           this.direction = Direction.NONE;
         }
@@ -195,103 +191,77 @@ export class Player {
     return moved;
   }
 
-  // Handle special corner turning cases
-  private handleCornerTurns(
+  // Handle all possible corner turning cases
+  private handleAllCornerTurns(
     nextDirection: Direction, 
     canMoveFn: (x: number, y: number) => boolean, 
     isCentered: (axis: 'x' | 'y') => boolean
   ): void {
-    // Special case for right-down corner turns
-    if (this.direction === Direction.RIGHT && nextDirection === Direction.DOWN) {
-      // Check if we're approaching a wall to the right
-      const rightBlocked = !canMoveFn(Math.floor(this.x + 1), Math.floor(this.y));
-      const downOpen = canMoveFn(Math.floor(this.x), Math.floor(this.y + 1));
+    // Check for current direction and wall ahead
+    const checkForWallAhead = (dir: Direction): boolean => {
+      const cellX = Math.floor(this.x);
+      const cellY = Math.floor(this.y);
       
-      if (rightBlocked && downOpen && isCentered('x')) {
-        // Snap to grid and change direction to down
+      switch (dir) {
+        case Direction.UP:
+          return !canMoveFn(cellX, cellY - 1);
+        case Direction.DOWN:
+          return !canMoveFn(cellX, cellY + 1);
+        case Direction.LEFT:
+          return !canMoveFn(cellX - 1, cellY);
+        case Direction.RIGHT:
+          return !canMoveFn(cellX + 1, cellY);
+        default:
+          return false;
+      }
+    };
+    
+    // Check if we can turn in the requested direction
+    const canTurn = (dir: Direction): boolean => {
+      const cellX = Math.floor(this.x);
+      const cellY = Math.floor(this.y);
+      
+      switch (dir) {
+        case Direction.UP:
+          return canMoveFn(cellX, cellY - 1);
+        case Direction.DOWN:
+          return canMoveFn(cellX, cellY + 1);
+        case Direction.LEFT:
+          return canMoveFn(cellX - 1, cellY);
+        case Direction.RIGHT:
+          return canMoveFn(cellX + 1, cellY);
+        default:
+          return false;
+      }
+    };
+    
+    // Handle horizontal to vertical turns
+    if ((this.direction === Direction.RIGHT || this.direction === Direction.LEFT) && 
+        (nextDirection === Direction.UP || nextDirection === Direction.DOWN)) {
+      // If we're about to hit a wall and we want to turn
+      if (checkForWallAhead(this.direction) && canTurn(nextDirection) && isCentered('x')) {
         this.x = Math.floor(this.x) + 0.5;
-        this.direction = Direction.DOWN;
+        this.direction = nextDirection;
       }
-    }
-    
-    // Special case for down-right corner turns
-    if (this.direction === Direction.DOWN && nextDirection === Direction.RIGHT) {
-      // Check if we're approaching a wall below
-      const downBlocked = !canMoveFn(Math.floor(this.x), Math.floor(this.y + 1));
-      const rightOpen = canMoveFn(Math.floor(this.x + 1), Math.floor(this.y));
-      
-      if (downBlocked && rightOpen && isCentered('y')) {
-        // Snap to grid and change direction to right
-        this.y = Math.floor(this.y) + 0.5;
-        this.direction = Direction.RIGHT;
-      }
-    }
-    
-    // Special case for right-up corner turns
-    if (this.direction === Direction.RIGHT && nextDirection === Direction.UP) {
-      // Check if we're approaching a wall to the right
-      const rightBlocked = !canMoveFn(Math.floor(this.x + 1), Math.floor(this.y));
-      const upOpen = canMoveFn(Math.floor(this.x), Math.floor(this.y - 1));
-      
-      if (rightBlocked && upOpen && isCentered('x')) {
-        // Snap to grid and change direction to up
+      // Normal case - we're aligned on the x-axis and want to turn
+      else if (canTurn(nextDirection) && isCentered('x')) {
         this.x = Math.floor(this.x) + 0.5;
-        this.direction = Direction.UP;
+        this.direction = nextDirection;
       }
     }
     
-    // Special case for up-right corner turns
-    if (this.direction === Direction.UP && nextDirection === Direction.RIGHT) {
-      // Check if we're approaching a wall above
-      const upBlocked = !canMoveFn(Math.floor(this.x), Math.floor(this.y - 1));
-      const rightOpen = canMoveFn(Math.floor(this.x + 1), Math.floor(this.y));
-      
-      if (upBlocked && rightOpen && isCentered('y')) {
-        // Snap to grid and change direction to right
+    // Handle vertical to horizontal turns
+    if ((this.direction === Direction.UP || this.direction === Direction.DOWN) && 
+        (nextDirection === Direction.LEFT || nextDirection === Direction.RIGHT)) {
+      // If we're about to hit a wall and we want to turn
+      if (checkForWallAhead(this.direction) && canTurn(nextDirection) && isCentered('y')) {
         this.y = Math.floor(this.y) + 0.5;
-        this.direction = Direction.RIGHT;
+        this.direction = nextDirection;
       }
-    }
-    
-    // Add left-down and down-left corner turns
-    if (this.direction === Direction.LEFT && nextDirection === Direction.DOWN) {
-      const leftBlocked = !canMoveFn(Math.floor(this.x - 1), Math.floor(this.y));
-      const downOpen = canMoveFn(Math.floor(this.x), Math.floor(this.y + 1));
-      
-      if (leftBlocked && downOpen && isCentered('x')) {
-        this.x = Math.floor(this.x) + 0.5;
-        this.direction = Direction.DOWN;
-      }
-    }
-    
-    if (this.direction === Direction.DOWN && nextDirection === Direction.LEFT) {
-      const downBlocked = !canMoveFn(Math.floor(this.x), Math.floor(this.y + 1));
-      const leftOpen = canMoveFn(Math.floor(this.x - 1), Math.floor(this.y));
-      
-      if (downBlocked && leftOpen && isCentered('y')) {
+      // Normal case - we're aligned on the y-axis and want to turn
+      else if (canTurn(nextDirection) && isCentered('y')) {
         this.y = Math.floor(this.y) + 0.5;
-        this.direction = Direction.LEFT;
-      }
-    }
-    
-    // Add left-up and up-left corner turns
-    if (this.direction === Direction.LEFT && nextDirection === Direction.UP) {
-      const leftBlocked = !canMoveFn(Math.floor(this.x - 1), Math.floor(this.y));
-      const upOpen = canMoveFn(Math.floor(this.x), Math.floor(this.y - 1));
-      
-      if (leftBlocked && upOpen && isCentered('x')) {
-        this.x = Math.floor(this.x) + 0.5;
-        this.direction = Direction.UP;
-      }
-    }
-    
-    if (this.direction === Direction.UP && nextDirection === Direction.LEFT) {
-      const upBlocked = !canMoveFn(Math.floor(this.x), Math.floor(this.y - 1));
-      const leftOpen = canMoveFn(Math.floor(this.x - 1), Math.floor(this.y));
-      
-      if (upBlocked && leftOpen && isCentered('y')) {
-        this.y = Math.floor(this.y) + 0.5;
-        this.direction = Direction.LEFT;
+        this.direction = nextDirection;
       }
     }
   }

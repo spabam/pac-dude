@@ -452,9 +452,10 @@ const GameCanvas: React.FC = () => {
       }
     });
     
+    // Larger Pacman size - 1.5x cell size
     const pacmanSize = CELL_SIZE * 1.5;
-    const drawX = player.current.x * CELL_SIZE - pacmanSize / 2;
-    const drawY = player.current.y * CELL_SIZE - pacmanSize / 2;
+    const drawX = player.current.x * CELL_SIZE - pacmanSize / 2 + CELL_SIZE / 2;
+    const drawY = player.current.y * CELL_SIZE - pacmanSize / 2 + CELL_SIZE / 2;
     
     let startAngle = 0.2 * Math.PI;
     let endAngle = 1.8 * Math.PI;
