@@ -1,4 +1,3 @@
-
 import { Direction, PLAYER_SPEED, GRID_WIDTH } from '../constants/gameConstants';
 
 export class Player {
