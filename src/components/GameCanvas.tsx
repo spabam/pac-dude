@@ -452,8 +452,9 @@ const GameCanvas: React.FC = () => {
       }
     });
     
-    const drawX = player.current.x * CELL_SIZE;
-    const drawY = player.current.y * CELL_SIZE;
+    // Make sure to use the exact coordinates for proper centering
+    const drawX = (player.current.x - 0.5) * CELL_SIZE;
+    const drawY = (player.current.y - 0.5) * CELL_SIZE;
     
     let startAngle = 0.2 * Math.PI;
     let endAngle = 1.8 * Math.PI;
@@ -488,13 +489,13 @@ const GameCanvas: React.FC = () => {
     ctx.fillStyle = '#FFFF00';
     ctx.beginPath();
     ctx.arc(
-      drawX + CELL_SIZE / 2,
-      drawY + CELL_SIZE / 2,
+      drawX + CELL_SIZE,
+      drawY + CELL_SIZE,
       pacmanSize,
       startAngle,
       endAngle
     );
-    ctx.lineTo(drawX + CELL_SIZE / 2, drawY + CELL_SIZE / 2);
+    ctx.lineTo(drawX + CELL_SIZE, drawY + CELL_SIZE);
     ctx.fill();
     
     if (gameState === GameState.MENU) {

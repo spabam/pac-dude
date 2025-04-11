@@ -1,3 +1,4 @@
+
 import { Direction, PLAYER_SPEED, GRID_WIDTH } from '../constants/gameConstants';
 
 export class Player {
@@ -143,7 +144,7 @@ export class Player {
         if (canMoveFn(Math.floor(this.x), Math.floor(this.y - moveDistance))) {
           this.y -= moveDistance;
           
-          // Ensure we stay perfectly centered on the x-axis while moving vertically
+          // Ensure player stays perfectly centered on the x-axis while moving vertically
           this.x = Math.floor(this.x) + 0.5;
           
           moved = true;
@@ -158,7 +159,7 @@ export class Player {
         if (canMoveFn(Math.floor(this.x), Math.floor(this.y + moveDistance))) {
           this.y += moveDistance;
           
-          // Ensure we stay perfectly centered on the x-axis while moving vertically
+          // Ensure player stays perfectly centered on the x-axis while moving vertically
           this.x = Math.floor(this.x) + 0.5;
           
           moved = true;
@@ -173,7 +174,7 @@ export class Player {
         if (canMoveFn(Math.floor(this.x - moveDistance), Math.floor(this.y))) {
           this.x -= moveDistance;
           
-          // Ensure we stay perfectly centered on the y-axis while moving horizontally
+          // Ensure player stays perfectly centered on the y-axis while moving horizontally
           this.y = Math.floor(this.y) + 0.5;
           
           moved = true;
@@ -188,7 +189,7 @@ export class Player {
         if (canMoveFn(Math.floor(this.x + moveDistance), Math.floor(this.y))) {
           this.x += moveDistance;
           
-          // Ensure we stay perfectly centered on the y-axis while moving horizontally
+          // Ensure player stays perfectly centered on the y-axis while moving horizontally
           this.y = Math.floor(this.y) + 0.5;
           
           moved = true;
