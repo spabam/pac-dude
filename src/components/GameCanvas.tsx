@@ -126,7 +126,7 @@ const GameCanvas: React.FC = () => {
   };
   
   const resetGame = () => {
-    // Initialize player at exact center position
+    // Initialize player at exact center position with explicit updated Y
     player.current = new Player(PLAYER_START_X, PLAYER_START_Y);
     ghosts.current = [
       new Ghost(GhostType.BLINKY, 14, 11),  // All ghosts will move randomly
@@ -150,6 +150,9 @@ const GameCanvas: React.FC = () => {
     setLevel(1);
     setDotsEaten(0);
     setGameState(GameState.PLAYING);
+    
+    // Debug logs to verify player position
+    console.log("Player reset position:", player.current.x, player.current.y);
   };
   
   const resetLevel = () => {
@@ -163,6 +166,9 @@ const GameCanvas: React.FC = () => {
     
     lastDirection.current = Direction.NONE;
     nextDirection.current = Direction.NONE;
+    
+    // Debug logs to verify player position
+    console.log("Level reset position:", player.current.x, player.current.y);
   };
   
   const activatePowerMode = () => {
@@ -191,15 +197,21 @@ const GameCanvas: React.FC = () => {
   };
   
   const canMove = (x: number, y: number): boolean => {
+    // Extra debug logs to help understand what's happening
+    console.log(`Checking if can move to: (${x}, ${y})`);
+    
     if (x < 0) return true;
     if (x >= GRID_WIDTH) return true;
     
     if (y < 0 || y >= GRID_HEIGHT) {
+      console.log(`Out of bounds: (${x}, ${y})`);
       return false;
     }
     
     const cell = gameBoard.current[y][x];
-    return cell !== CellType.WALL && cell !== CellType.GHOST_DOOR;
+    const canMoveResult = cell !== CellType.WALL && cell !== CellType.GHOST_DOOR;
+    console.log(`Cell at (${x}, ${y}) is type ${cell}, canMove: ${canMoveResult}`);
+    return canMoveResult;
   };
   
   const collectItem = (x: number, y: number) => {
@@ -456,6 +468,7 @@ const GameCanvas: React.FC = () => {
     const pacmanSize = CELL_SIZE * 1.5;
     
     // Fix Pac-Man's rendering position to be properly centered on his game coordinates
+    // IMPORTANT: This ensures consistent visual positioning
     const drawX = (player.current.x * CELL_SIZE) - (pacmanSize / 2) + (CELL_SIZE / 2);
     const drawY = (player.current.y * CELL_SIZE) - (pacmanSize / 2) + (CELL_SIZE / 2);
     
@@ -481,17 +494,16 @@ const GameCanvas: React.FC = () => {
         break;
     }
     
-    // Animate mouth opening/closing
-    const mouthSpeed = 0.15;
+    // Make mouth animation more fluid
+    const mouthSpeed = 0.1; // Slower animation
     const t = Math.abs(Math.sin(Date.now() * mouthSpeed));
     
-    // Calculate mouth angles
-    const mouthOpen = 0.2 * Math.PI;  // Maximum mouth opening
-    const finalStartAngle = startAngle * t;
-    const finalEndAngle = endAngle + ((2 * Math.PI - endAngle) * (1 - t));
+    // Calculate mouth angles for more fluid animation
+    const finalStartAngle = startAngle + ((Math.PI * 0.2) * (1 - t));
+    const finalEndAngle = endAngle - ((Math.PI * 0.2) * (1 - t));
     
-    // Draw Pac-Man body (yellow circle with mouth)
-    ctx.fillStyle = '#FFFF00';
+    // Draw Pac-Man body - a bright yellow circle with animated mouth
+    ctx.fillStyle = '#FFFF00'; // Bright yellow
     ctx.beginPath();
     ctx.arc(
       drawX + pacmanSize / 2,
@@ -503,7 +515,18 @@ const GameCanvas: React.FC = () => {
     ctx.lineTo(drawX + pacmanSize / 2, drawY + pacmanSize / 2);
     ctx.fill();
     
-    // Draw game state screens
+    // Debug visualization - draw a dot at the exact player position
+    ctx.fillStyle = '#FF0000';
+    ctx.beginPath();
+    ctx.arc(
+      player.current.x * CELL_SIZE,
+      player.current.y * CELL_SIZE,
+      2, // Small 2px dot
+      0,
+      Math.PI * 2
+    );
+    ctx.fill();
+    
     if (gameState === GameState.MENU) {
       drawMenu(ctx, canvas.width, canvas.height);
     } else if (gameState === GameState.GAME_OVER) {

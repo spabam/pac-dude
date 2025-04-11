@@ -52,11 +52,14 @@ export class Player {
     const moveDistance = this.speed * deltaTime;
     let moved = false;
 
-    // More forgiving tolerance for checking if centered on an axis
-    // Increased from 0.48 to 0.65 to make turning even easier
+    // Debug position before any updates
+    console.log(`Pre-update position: (${this.x.toFixed(2)}, ${this.y.toFixed(2)})`);
+    
+    // Extra tolerant centering check - consider player centered with high tolerance
+    // Increased from 0.65 to 0.75 for even easier direction changes
     const isCentered = (axis: 'x' | 'y'): boolean => {
       const value = axis === 'x' ? this.x : this.y;
-      return Math.abs(value - Math.floor(value) - 0.5) < 0.65;
+      return Math.abs(value - Math.floor(value) - 0.5) < 0.75;
     };
 
     // CRITICAL FIX: Force initial movement if still at starting position
@@ -262,9 +265,10 @@ export class Player {
       }
     };
     
-    // IMPROVED: More aggressive wall corner detection with relaxed tolerances
-    const nearCell = Math.abs(this.x - Math.floor(this.x) - 0.5) < 0.65 &&
-                    Math.abs(this.y - Math.floor(this.y) - 0.5) < 0.65;
+    // IMPROVED: More aggressive wall corner detection with even more relaxed tolerances
+    // Increased from 0.65 to 0.8 to make turning at corners far easier
+    const nearCell = Math.abs(this.x - Math.floor(this.x) - 0.5) < 0.8 &&
+                    Math.abs(this.y - Math.floor(this.y) - 0.5) < 0.8;
     
     if (nearCell && (hasWallAhead() || this.direction === Direction.NONE) && nextDirection !== this.direction) {
       if (canTurn(nextDirection)) {

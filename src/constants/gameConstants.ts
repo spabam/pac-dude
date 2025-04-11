@@ -62,7 +62,7 @@ export const GHOST_CHASE_DURATION = 20000; // 20 seconds
 
 // Starting positions
 export const PLAYER_START_X = 14;
-export const PLAYER_START_Y = 23;
+export const PLAYER_START_Y = 22.5; // MOVED UP to ensure Pac-Dude starts in a corridor
 export const GHOST_HOME_X = 14;
 export const GHOST_HOME_Y = 14;
 
