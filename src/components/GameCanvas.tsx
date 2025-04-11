@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect, useState } from 'react';
 import { 
   GRID_WIDTH, 
@@ -34,7 +33,6 @@ const GameCanvas: React.FC = () => {
   const [highScore, setHighScore] = useState<number>(0);
   const isMobile = useIsMobile();
   
-  // Game objects
   const player = useRef(new Player(PLAYER_START_X, PLAYER_START_Y));
   const ghosts = useRef([
     new Ghost(GhostType.BLINKY, 14, 11),
@@ -43,7 +41,6 @@ const GameCanvas: React.FC = () => {
     new Ghost(GhostType.CLYDE, 16, 14)
   ]);
   
-  // Game state
   const gameBoard = useRef<number[][]>(JSON.parse(JSON.stringify(mazeLayout)));
   const powerMode = useRef<boolean>(false);
   const powerModeTimer = useRef<number | null>(null);
@@ -51,16 +48,13 @@ const GameCanvas: React.FC = () => {
   const lastDirection = useRef<Direction>(Direction.NONE);
   const nextDirection = useRef<Direction>(Direction.NONE);
   
-  // Initialize game state
   useEffect(() => {
-    // Load high score from localStorage
     const savedHighScore = localStorage.getItem('pacmanHighScore');
     if (savedHighScore) {
       setHighScore(parseInt(savedHighScore, 10));
     }
   }, []);
   
-  // Save high score when it changes
   useEffect(() => {
     if (score > highScore) {
       setHighScore(score);
@@ -68,7 +62,6 @@ const GameCanvas: React.FC = () => {
     }
   }, [score, highScore]);
   
-  // Prevent arrow keys and WASD from scrolling the page
   useEffect(() => {
     const preventDefaultForGameKeys = (e: KeyboardEvent) => {
       const gameKeys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'a', 's', 'd', ' '];
@@ -83,12 +76,10 @@ const GameCanvas: React.FC = () => {
     };
   }, []);
   
-  // Handle keyboard input for both WASD and arrow keys
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const key = e.key.toLowerCase();
       
-      // Debug key press
       console.log("Key pressed:", key);
       
       switch (key) {
@@ -109,7 +100,6 @@ const GameCanvas: React.FC = () => {
           nextDirection.current = Direction.RIGHT;
           break;
         case ' ':
-          // Space to start game or pause
           if (gameState === GameState.MENU || gameState === GameState.GAME_OVER || gameState === GameState.WIN) {
             resetGame();
           } else if (gameState === GameState.PLAYING) {
@@ -129,14 +119,11 @@ const GameCanvas: React.FC = () => {
     };
   }, [gameState]);
   
-  // Handle touch controls
   const handleTouchStart = (direction: Direction) => {
     nextDirection.current = direction;
   };
   
-  // Reset the game state
   const resetGame = () => {
-    // Reset game objects
     player.current = new Player(PLAYER_START_X, PLAYER_START_Y);
     ghosts.current = [
       new Ghost(GhostType.BLINKY, 14, 11),
@@ -145,7 +132,6 @@ const GameCanvas: React.FC = () => {
       new Ghost(GhostType.CLYDE, 16, 14)
     ];
     
-    // Reset game state
     gameBoard.current = JSON.parse(JSON.stringify(mazeLayout));
     powerMode.current = false;
     if (powerModeTimer.current !== null) {
@@ -156,7 +142,6 @@ const GameCanvas: React.FC = () => {
     lastDirection.current = Direction.NONE;
     nextDirection.current = Direction.NONE;
     
-    // Reset UI state
     setScore(0);
     setLives(3);
     setLevel(1);
@@ -164,7 +149,6 @@ const GameCanvas: React.FC = () => {
     setGameState(GameState.PLAYING);
   };
   
-  // Reset level
   const resetLevel = () => {
     player.current = new Player(PLAYER_START_X, PLAYER_START_Y);
     ghosts.current = [
@@ -178,24 +162,20 @@ const GameCanvas: React.FC = () => {
     nextDirection.current = Direction.NONE;
   };
   
-  // Activate power mode
   const activatePowerMode = () => {
     powerMode.current = true;
     ghostCombo.current = 1;
     
-    // Set all ghosts to frightened
     ghosts.current.forEach(ghost => {
       if (ghost.state !== GhostState.EATEN) {
         ghost.setState(GhostState.FRIGHTENED);
       }
     });
     
-    // Clear existing timer if there is one
     if (powerModeTimer.current !== null) {
       clearTimeout(powerModeTimer.current);
     }
     
-    // Set timer to end power mode
     powerModeTimer.current = window.setTimeout(() => {
       powerMode.current = false;
       ghosts.current.forEach(ghost => {
@@ -207,7 +187,6 @@ const GameCanvas: React.FC = () => {
     }, POWER_PELLET_DURATION);
   };
   
-  // Check if the player can move in a direction
   const canMove = (x: number, y: number): boolean => {
     if (x < 0 || x >= GRID_WIDTH || y < 0 || y >= GRID_HEIGHT) {
       return false;
@@ -217,7 +196,6 @@ const GameCanvas: React.FC = () => {
     return cell !== CellType.WALL && cell !== CellType.GHOST_DOOR;
   };
   
-  // Handle player collecting items
   const collectItem = (x: number, y: number) => {
     const cell = gameBoard.current[y][x];
     
@@ -232,14 +210,12 @@ const GameCanvas: React.FC = () => {
       activatePowerMode();
     }
     
-    // Check win condition
     if (dotsEaten >= TOTAL_DOTS) {
       setLevel(prev => prev + 1);
       setGameState(GameState.WIN);
     }
   };
   
-  // Handle collisions with ghosts
   const checkGhostCollisions = () => {
     const playerX = Math.floor(player.current.x);
     const playerY = Math.floor(player.current.y);
@@ -248,26 +224,19 @@ const GameCanvas: React.FC = () => {
       const ghostX = Math.floor(ghost.x);
       const ghostY = Math.floor(ghost.y);
       
-      // Check collision with a more forgiving hitbox
       const distance = Math.sqrt(
         Math.pow(player.current.x - ghost.x, 2) + 
         Math.pow(player.current.y - ghost.y, 2)
       );
       
-      // If player and ghost are close enough
       if (distance < 0.7) {
         if (ghost.state === GhostState.FRIGHTENED) {
-          // Player eats ghost
           ghost.setState(GhostState.EATEN);
           
-          // Award points with combo multiplier
           const points = GHOST_POINTS * ghostCombo.current;
           setScore(prevScore => prevScore + points);
-          
-          // Increase combo multiplier
           ghostCombo.current *= GHOST_COMBO_MULTIPLIER;
         } else if (ghost.state !== GhostState.EATEN) {
-          // Ghost catches player
           setLives(prevLives => prevLives - 1);
           
           if (lives <= 1) {
@@ -280,9 +249,7 @@ const GameCanvas: React.FC = () => {
     });
   };
   
-  // Main game update function
   const update = (deltaTime: number) => {
-    // Update player
     const playerDidMove = player.current.update(
       deltaTime, 
       lastDirection.current, 
@@ -291,13 +258,10 @@ const GameCanvas: React.FC = () => {
     );
     
     if (playerDidMove) {
-      // Update last direction if player actually moved
       lastDirection.current = player.current.direction;
       
-      // Collect items
       collectItem(Math.floor(player.current.x), Math.floor(player.current.y));
       
-      // Handle tunnel wrap-around
       if (player.current.x < 0) {
         player.current.x = GRID_WIDTH - 1;
       } else if (player.current.x >= GRID_WIDTH) {
@@ -305,7 +269,6 @@ const GameCanvas: React.FC = () => {
       }
     }
     
-    // Update ghosts
     ghosts.current.forEach(ghost => {
       ghost.update(
         deltaTime,
@@ -314,7 +277,6 @@ const GameCanvas: React.FC = () => {
         powerMode.current
       );
       
-      // Handle tunnel wrap-around for ghosts
       if (ghost.x < 0) {
         ghost.x = GRID_WIDTH - 1;
       } else if (ghost.x >= GRID_WIDTH) {
@@ -322,11 +284,9 @@ const GameCanvas: React.FC = () => {
       }
     });
     
-    // Check for collisions
     checkGhostCollisions();
   };
   
-  // Render game
   const render = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -334,30 +294,21 @@ const GameCanvas: React.FC = () => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
     
-    // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    // Draw maze
     for (let y = 0; y < GRID_HEIGHT; y++) {
       for (let x = 0; x < GRID_WIDTH; x++) {
         const cellType = gameBoard.current[y][x];
         const drawX = x * CELL_SIZE;
         const drawY = y * CELL_SIZE;
         
-        // Draw walls
         if (cellType === CellType.WALL) {
           ctx.fillStyle = '#2450FF';
           ctx.fillRect(drawX, drawY, CELL_SIZE, CELL_SIZE);
-        }
-        
-        // Draw ghost door
-        else if (cellType === CellType.GHOST_DOOR) {
+        } else if (cellType === CellType.GHOST_DOOR) {
           ctx.fillStyle = '#FFC0CB';
           ctx.fillRect(drawX, drawY, CELL_SIZE, CELL_SIZE);
-        }
-        
-        // Draw dots
-        else if (cellType === CellType.DOT) {
+        } else if (cellType === CellType.DOT) {
           ctx.fillStyle = '#FFF';
           ctx.beginPath();
           ctx.arc(
@@ -368,12 +319,8 @@ const GameCanvas: React.FC = () => {
             Math.PI * 2
           );
           ctx.fill();
-        }
-        
-        // Draw power pellets
-        else if (cellType === CellType.POWER_PELLET) {
+        } else if (cellType === CellType.POWER_PELLET) {
           ctx.fillStyle = '#FFF';
-          // Make power pellets pulsate
           const pulseSize = Math.sin(Date.now() / 200) * 0.2 + 0.8;
           ctx.beginPath();
           ctx.arc(
@@ -388,41 +335,36 @@ const GameCanvas: React.FC = () => {
       }
     }
     
-    // Draw ghosts
     ghosts.current.forEach(ghost => {
       const drawX = ghost.x * CELL_SIZE;
       const drawY = ghost.y * CELL_SIZE;
       
-      // Choose ghost color based on type and state
-      let ghostColor = '#FF0000'; // Default red
+      let ghostColor = '#FF0000';
       
       if (ghost.state === GhostState.FRIGHTENED) {
-        // Check if nearing end of frightened state
         const isFlashing = powerModeTimer.current !== null && 
           Date.now() > (POWER_PELLET_DURATION - GHOST_FLASH_DURATION + (powerModeTimer.current || 0));
         
         ghostColor = isFlashing && Math.floor(Date.now() / 200) % 2 === 0 ? '#FFFFFF' : '#0000FF';
       } else if (ghost.state === GhostState.EATEN) {
-        ghostColor = '#FFFFFF'; // Eyes only
+        ghostColor = '#FFFFFF';
       } else {
-        // Normal ghost colors
         switch (ghost.type) {
           case GhostType.BLINKY:
-            ghostColor = '#FF0000'; // Red
+            ghostColor = '#FF0000';
             break;
           case GhostType.PINKY:
-            ghostColor = '#FFB8FF'; // Pink
+            ghostColor = '#FFB8FF';
             break;
           case GhostType.INKY:
-            ghostColor = '#00FFFF'; // Cyan
+            ghostColor = '#00FFFF';
             break;
           case GhostType.CLYDE:
-            ghostColor = '#FFB852'; // Orange
+            ghostColor = '#FFB852';
             break;
         }
       }
       
-      // Draw ghost body
       ctx.fillStyle = ghostColor;
       ctx.beginPath();
       ctx.arc(
@@ -434,7 +376,6 @@ const GameCanvas: React.FC = () => {
         false
       );
       
-      // Draw wavy bottom of ghost
       const waveAmplitude = 2;
       const waveWidth = CELL_SIZE / 6;
       
@@ -453,7 +394,6 @@ const GameCanvas: React.FC = () => {
       ctx.lineTo(drawX, drawY + CELL_SIZE / 2 - 2);
       ctx.fill();
       
-      // Draw eyes
       ctx.fillStyle = '#FFFFFF';
       ctx.beginPath();
       ctx.arc(
@@ -472,17 +412,14 @@ const GameCanvas: React.FC = () => {
       );
       ctx.fill();
       
-      // Draw pupils (look in direction of movement or at player when frightened)
-      if (ghost.state !== GhostState.FRIGHTENED || ghost.state === GhostState.EATEN) {
+      if (ghost.state !== GhostState.FRIGHTENED && ghost.state !== GhostState.EATEN) {
         ctx.fillStyle = '#0000FF';
         
-        // Determine pupil position based on ghost direction
         let leftPupilX = drawX + CELL_SIZE / 3;
         let leftPupilY = drawY + CELL_SIZE / 2 - 2;
         let rightPupilX = drawX + (CELL_SIZE * 2) / 3;
         let rightPupilY = drawY + CELL_SIZE / 2 - 2;
         
-        // Adjust pupil position based on ghost direction
         switch (ghost.direction) {
           case Direction.UP:
             leftPupilY -= 2;
@@ -509,11 +446,9 @@ const GameCanvas: React.FC = () => {
       }
     });
     
-    // Draw player (Pac-Man)
     const drawX = player.current.x * CELL_SIZE;
     const drawY = player.current.y * CELL_SIZE;
     
-    // Determine mouth angle based on direction
     let startAngle = 0.2 * Math.PI;
     let endAngle = 1.8 * Math.PI;
     
@@ -536,15 +471,12 @@ const GameCanvas: React.FC = () => {
         break;
     }
     
-    // Animate mouth opening and closing
     const mouthSpeed = 0.15;
     const t = Math.abs(Math.sin(Date.now() * mouthSpeed));
     
-    // Interpolate mouth angles
     startAngle = startAngle * t;
     endAngle = endAngle + ((2 * Math.PI - endAngle) * (1 - t));
     
-    // Draw Pac-Man
     ctx.fillStyle = '#FFFF00';
     ctx.beginPath();
     ctx.arc(
@@ -557,7 +489,6 @@ const GameCanvas: React.FC = () => {
     ctx.lineTo(drawX + CELL_SIZE / 2, drawY + CELL_SIZE / 2);
     ctx.fill();
     
-    // Draw game state overlays
     if (gameState === GameState.MENU) {
       drawMenu(ctx, canvas.width, canvas.height);
     } else if (gameState === GameState.GAME_OVER) {
@@ -569,7 +500,6 @@ const GameCanvas: React.FC = () => {
     }
   };
   
-  // Draw menu overlay
   const drawMenu = (ctx: CanvasRenderingContext2D, width: number, height: number) => {
     ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
     ctx.fillRect(0, 0, width, height);
@@ -593,7 +523,6 @@ const GameCanvas: React.FC = () => {
     ctx.fillText('HIGH SCORE: ' + highScore, width / 2, height / 2 + 100);
   };
   
-  // Draw game over overlay
   const drawGameOver = (ctx: CanvasRenderingContext2D, width: number, height: number) => {
     ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
     ctx.fillRect(0, 0, width, height);
@@ -615,7 +544,6 @@ const GameCanvas: React.FC = () => {
     }
   };
   
-  // Draw pause overlay
   const drawPause = (ctx: CanvasRenderingContext2D, width: number, height: number) => {
     ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
     ctx.fillRect(0, 0, width, height);
@@ -636,7 +564,6 @@ const GameCanvas: React.FC = () => {
     }
   };
   
-  // Draw win overlay
   const drawWin = (ctx: CanvasRenderingContext2D, width: number, height: number) => {
     ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
     ctx.fillRect(0, 0, width, height);
@@ -658,7 +585,6 @@ const GameCanvas: React.FC = () => {
     }
   };
   
-  // Handle canvas click
   const handleCanvasClick = () => {
     if (gameState === GameState.MENU || gameState === GameState.GAME_OVER || gameState === GameState.WIN) {
       resetGame();
@@ -669,7 +595,6 @@ const GameCanvas: React.FC = () => {
     }
   };
   
-  // Use game loop
   const { fps } = useGameLoop({
     gameState,
     update,
