@@ -1,4 +1,3 @@
-
 import { Direction, PLAYER_SPEED } from '../constants/gameConstants';
 
 export class Player {
@@ -51,16 +50,22 @@ export class Player {
     const moveDistance = this.speed * deltaTime;
     let moved = false;
 
-    // Check if we should apply the next direction immediately
+    // Always try to change to the next direction first
     if (nextDirection !== Direction.NONE) {
       console.log("Trying to change to direction:", nextDirection);
-      if (this.canChangeDirection(nextDirection, canMoveFn)) {
-        console.log("Successfully changed direction to:", nextDirection);
+      // Just set the direction immediately if this is the first movement
+      if (this.direction === Direction.NONE) {
         this.direction = nextDirection;
+        console.log("First movement, setting direction to:", nextDirection);
+      } 
+      // Otherwise check if we can change to the new direction
+      else if (this.canChangeDirection(nextDirection, canMoveFn)) {
+        this.direction = nextDirection;
+        console.log("Successfully changed direction to:", nextDirection);
       }
     }
 
-    // If player is in a cell center position, they can change direction
+    // If player is in a cell center position, they can change direction more easily
     const isAtCellCenter = 
       Math.abs(this.x - Math.floor(this.x) - 0.5) < 0.1 && 
       Math.abs(this.y - Math.floor(this.y) - 0.5) < 0.1;
