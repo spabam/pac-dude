@@ -1,4 +1,7 @@
-# Welcome to your Lovable project
+
+# PAC-DUDE
+
+A classic arcade game with a yellow dude
 
 ## Project info
 
