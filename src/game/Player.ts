@@ -55,8 +55,8 @@ export class Player {
     // Check if player is near a cell center (for turning)
     const isCentered = (axis: 'x' | 'y'): boolean => {
       const value = axis === 'x' ? this.x : this.y;
-      // More forgiving tolerance for checking if centered on an axis
-      return Math.abs(value - Math.floor(value) - 0.5) < 0.15;
+      // Even more forgiving tolerance for checking if centered on an axis
+      return Math.abs(value - Math.floor(value) - 0.5) < 0.2;
     };
 
     // Check if at or near grid alignment point (cell center)
@@ -107,6 +107,33 @@ export class Player {
         this.x = Math.floor(this.x) + 0.5;
         this.y = Math.floor(this.y) + 0.5;
         this.direction = nextDirection;
+      }
+    }
+
+    // Special case for right-down corner turns - proactively check if we can turn down when going right
+    // and we see a wall ahead but a passage downwards
+    if (this.direction === Direction.RIGHT && nextDirection === Direction.DOWN) {
+      // Check if we're approaching a wall to the right
+      const rightBlocked = !canMoveFn(Math.floor(this.x + 1), Math.floor(this.y));
+      const downOpen = canMoveFn(Math.floor(this.x), Math.floor(this.y + 1));
+      
+      if (rightBlocked && downOpen && isCentered('x')) {
+        // Snap to grid and change direction to down
+        this.x = Math.floor(this.x) + 0.5;
+        this.direction = Direction.DOWN;
+      }
+    }
+    
+    // Special case for down-right corner turns
+    if (this.direction === Direction.DOWN && nextDirection === Direction.RIGHT) {
+      // Check if we're approaching a wall below
+      const downBlocked = !canMoveFn(Math.floor(this.x), Math.floor(this.y + 1));
+      const rightOpen = canMoveFn(Math.floor(this.x + 1), Math.floor(this.y));
+      
+      if (downBlocked && rightOpen && isCentered('y')) {
+        // Snap to grid and change direction to right
+        this.y = Math.floor(this.y) + 0.5;
+        this.direction = Direction.RIGHT;
       }
     }
 
