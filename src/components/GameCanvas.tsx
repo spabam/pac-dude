@@ -301,7 +301,7 @@ const GameCanvas: React.FC = () => {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
     for (let y = 0; y < GRID_HEIGHT; y++) {
-      for (let x = 0; x < GRID_WIDTH; x++) {
+      for (let x = 0; y < GRID_WIDTH; x++) {
         const cellType = gameBoard.current[y][x];
         const drawX = x * CELL_SIZE;
         const drawY = y * CELL_SIZE;
@@ -452,12 +452,12 @@ const GameCanvas: React.FC = () => {
       }
     });
     
-    // Define pacmanSize before using it
-    const pacmanSize = CELL_SIZE * 0.875;
+    // Define pacmanSize before using it - restored to original size
+    const pacmanSize = CELL_SIZE;
     
-    // Draw Pac-Man - corrected positioning to be perfectly centered in corridors
-    const drawX = player.current.x * CELL_SIZE - pacmanSize;
-    const drawY = player.current.y * CELL_SIZE - pacmanSize;
+    // Draw Pac-Man with corrected positioning and original size
+    const drawX = player.current.x * CELL_SIZE - pacmanSize / 2;
+    const drawY = player.current.y * CELL_SIZE - pacmanSize / 2;
     
     let startAngle = 0.2 * Math.PI;
     let endAngle = 1.8 * Math.PI;
@@ -490,13 +490,13 @@ const GameCanvas: React.FC = () => {
     ctx.fillStyle = '#FFFF00';
     ctx.beginPath();
     ctx.arc(
-      drawX + pacmanSize,
-      drawY + pacmanSize,
-      pacmanSize * 0.35, // 35% of the size
+      drawX + pacmanSize / 2,
+      drawY + pacmanSize / 2,
+      pacmanSize / 2, // Original full size
       startAngle,
       endAngle
     );
-    ctx.lineTo(drawX + pacmanSize, drawY + pacmanSize);
+    ctx.lineTo(drawX + pacmanSize / 2, drawY + pacmanSize / 2);
     ctx.fill();
     
     if (gameState === GameState.MENU) {
