@@ -36,10 +36,10 @@ const GameCanvas: React.FC = () => {
   
   const player = useRef(new Player(PLAYER_START_X, PLAYER_START_Y));
   const ghosts = useRef([
-    new Ghost(GhostType.BLINKY, 14, 11),  // Red ghost - now random
-    new Ghost(GhostType.PINKY, 14, 14),   // Pink ghost - random
-    new Ghost(GhostType.INKY, 12, 14),    // Cyan ghost - random
-    new Ghost(GhostType.CLYDE, 16, 14)    // Orange ghost - random
+    new Ghost(GhostType.BLINKY, 14, 11),  // All ghosts will move randomly
+    new Ghost(GhostType.PINKY, 14, 14),   
+    new Ghost(GhostType.INKY, 12, 14),    
+    new Ghost(GhostType.CLYDE, 16, 14)    
   ]);
   
   const gameBoard = useRef<number[][]>(JSON.parse(JSON.stringify(mazeLayout)));
@@ -126,6 +126,7 @@ const GameCanvas: React.FC = () => {
   };
   
   const resetGame = () => {
+    // Initialize player at exact center position
     player.current = new Player(PLAYER_START_X, PLAYER_START_Y);
     ghosts.current = [
       new Ghost(GhostType.BLINKY, 14, 11),  // All ghosts will move randomly
@@ -266,7 +267,6 @@ const GameCanvas: React.FC = () => {
     
     if (playerDidMove) {
       lastDirection.current = player.current.direction;
-      
       collectItem(Math.floor(player.current.x), Math.floor(player.current.y));
     }
     
@@ -452,9 +452,12 @@ const GameCanvas: React.FC = () => {
       }
     });
     
-    // Draw Pac-Man with correct size and position
-    // Using a size factor of 1.5x the cell size
+    // Draw Pac-Man with correct size and improved positioning
+    // Using a size factor of 1.5x the cell size for better visibility
     const pacmanSize = CELL_SIZE * 1.5;
+    
+    // Critical fix: Correctly calculate Pac-Man's rendering position
+    // We need to center the pacman based on his game coordinates
     const drawX = (player.current.x * CELL_SIZE) - (pacmanSize / 2) + (CELL_SIZE / 2);
     const drawY = (player.current.y * CELL_SIZE) - (pacmanSize / 2) + (CELL_SIZE / 2);
     
@@ -502,6 +505,7 @@ const GameCanvas: React.FC = () => {
     ctx.lineTo(drawX + pacmanSize / 2, drawY + pacmanSize / 2);
     ctx.fill();
     
+    // Draw game state screens
     if (gameState === GameState.MENU) {
       drawMenu(ctx, canvas.width, canvas.height);
     } else if (gameState === GameState.GAME_OVER) {
@@ -520,7 +524,7 @@ const GameCanvas: React.FC = () => {
     ctx.fillStyle = '#FFFF00';
     ctx.font = '40px "Press Start 2P", cursive';
     ctx.textAlign = 'center';
-    ctx.fillText('GHOST GOBBLER', width / 2, height / 2 - 80);
+    ctx.fillText('PAC-DUDE', width / 2, height / 2 - 80);
     
     ctx.fillStyle = '#FFFFFF';
     ctx.font = '20px "Press Start 2P", cursive';
