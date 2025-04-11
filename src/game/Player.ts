@@ -1,4 +1,3 @@
-
 import { Direction, PLAYER_SPEED, GRID_WIDTH } from '../constants/gameConstants';
 
 export class Player {
@@ -52,13 +51,17 @@ export class Player {
     const moveDistance = this.speed * deltaTime;
     let moved = false;
 
-    // Check if at grid alignment point (cell center)
-    const isAtCellCenter = 
-      Math.abs(this.x - Math.floor(this.x) - 0.5) < 0.01 && 
-      Math.abs(this.y - Math.floor(this.y) - 0.5) < 0.01;
+    // Check if player is near a cell center (for turning)
+    const isCentered = (axis: 'x' | 'y'): boolean => {
+      const value = axis === 'x' ? this.x : this.y;
+      return Math.abs(value - Math.floor(value) - 0.5) < 0.1;
+    };
 
-    // At cell centers, we can change direction more reliably
-    if (isAtCellCenter) {
+    // Check if at or near grid alignment point (cell center)
+    const isNearCellCenter = isCentered('x') && isCentered('y');
+    
+    // Try to apply next direction immediately if we're at a grid point
+    if (isNearCellCenter) {
       // Snap precisely to cell center for accuracy
       this.x = Math.floor(this.x) + 0.5;
       this.y = Math.floor(this.y) + 0.5;
@@ -67,15 +70,37 @@ export class Player {
       if (nextDirection !== Direction.NONE && this.canChangeDirection(nextDirection, canMoveFn)) {
         this.direction = nextDirection;
       } 
-      // If we can't use nextDirection, try currentDirection as fallback
-      else if (currentDirection !== Direction.NONE && 
-               currentDirection !== this.direction && 
-               this.canChangeDirection(currentDirection, canMoveFn)) {
-        this.direction = currentDirection;
+      // If we can't use nextDirection, keep current direction if it's valid
+      else if (this.direction !== Direction.NONE && !this.canMoveInCurrentDirection(canMoveFn)) {
+        this.direction = Direction.NONE;
       }
-    } else if (this.direction === Direction.NONE) {
-      // If we're not moving yet, only try changing direction if next direction is valid
-      if (nextDirection !== Direction.NONE && this.canChangeDirection(nextDirection, canMoveFn)) {
+    } 
+    // Handle turning at corridor intersections (player is aligned with one axis but not the other)
+    else {
+      // Allow turning when aligned with the grid on the appropriate axis
+      if (nextDirection !== Direction.NONE && nextDirection !== this.direction) {
+        // For horizontal turns (left/right), player should be centered on y-axis
+        if ((nextDirection === Direction.LEFT || nextDirection === Direction.RIGHT) && isCentered('y')) {
+          if (this.canChangeDirection(nextDirection, canMoveFn)) {
+            // Snap to y-axis grid line when turning left/right
+            this.y = Math.floor(this.y) + 0.5;
+            this.direction = nextDirection;
+          }
+        }
+        // For vertical turns (up/down), player should be centered on x-axis
+        else if ((nextDirection === Direction.UP || nextDirection === Direction.DOWN) && isCentered('x')) {
+          if (this.canChangeDirection(nextDirection, canMoveFn)) {
+            // Snap to x-axis grid line when turning up/down
+            this.x = Math.floor(this.x) + 0.5;
+            this.direction = nextDirection;
+          }
+        }
+      }
+    }
+
+    // If we're not moving yet, try to start moving in next direction
+    if (this.direction === Direction.NONE && nextDirection !== Direction.NONE) {
+      if (this.canChangeDirection(nextDirection, canMoveFn)) {
         // Snap to grid before starting movement for better alignment
         this.x = Math.floor(this.x) + 0.5;
         this.y = Math.floor(this.y) + 0.5;
@@ -145,7 +170,7 @@ export class Player {
 
     // Handle tunnel wrap-around
     if (this.x < 0) {
-      this.x = Math.floor(GRID_WIDTH) - 0.5;
+      this.x = GRID_WIDTH - 0.5;
     } else if (this.x >= GRID_WIDTH) {
       this.x = 0.5;
     }
