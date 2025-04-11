@@ -1,4 +1,3 @@
-
 import { 
   Direction, 
   GhostType, 
@@ -6,7 +5,8 @@ import {
   CellType,
   GHOST_SPEED,
   GHOST_FRIGHTENED_SPEED,
-  GHOST_TUNNEL_SPEED
+  GHOST_TUNNEL_SPEED,
+  GHOST_RANDOM_DIRECTION_CHANGE
 } from '../constants/gameConstants';
 
 interface Position {
@@ -27,18 +27,23 @@ export class Ghost {
   scatterTargetY: number;
   homeX: number;
   homeY: number;
+  lastRandomDirectionChange: number;
 
   constructor(type: GhostType, x: number, y: number) {
     this.type = type;
     this.x = Math.floor(x) + 0.5; // Ensure ghost starts centered in cell
     this.y = Math.floor(y) + 0.5;
     this.direction = Direction.UP;
-    this.state = GhostState.CHASE; // Start in chase mode to immediately pursue player
+    
+    // Only Blinky (red ghost) will chase, others will move randomly
+    this.state = type === GhostType.BLINKY ? GhostState.CHASE : GhostState.RANDOM;
+    
     this.speed = GHOST_SPEED;
     this.targetX = 0;
     this.targetY = 0;
     this.homeX = x;
     this.homeY = y;
+    this.lastRandomDirectionChange = 0;
     
     // Set scatter targets based on ghost type (corners of the map)
     switch (type) {
@@ -66,7 +71,8 @@ export class Ghost {
     deltaTime: number, 
     grid: number[][], 
     playerPos: Position,
-    powerMode: boolean
+    powerMode: boolean,
+    currentTime: number = Date.now()
   ) {
     // Update ghost target based on state and type
     this.updateTarget(playerPos);
@@ -88,21 +94,28 @@ export class Ghost {
     
     const moveDistance = moveSpeed * deltaTime;
     
-    // Only change direction at grid intersections
+    // Only change direction at grid intersections or when random timer expires for RANDOM state
     const isAtIntersection = 
       Math.abs(this.x - Math.floor(this.x) - 0.5) < 0.1 && 
       Math.abs(this.y - Math.floor(this.y) - 0.5) < 0.1;
     
-    if (isAtIntersection) {
-      // Snap to grid center for precision
-      this.x = Math.floor(this.x) + 0.5;
-      this.y = Math.floor(this.y) + 0.5;
+    const shouldChangeRandomDirection = 
+      this.state === GhostState.RANDOM && 
+      (currentTime - this.lastRandomDirectionChange) > GHOST_RANDOM_DIRECTION_CHANGE;
+      
+    if (isAtIntersection || shouldChangeRandomDirection) {
+      // If at intersection, snap to grid center for precision
+      if (isAtIntersection) {
+        this.x = Math.floor(this.x) + 0.5;
+        this.y = Math.floor(this.y) + 0.5;
+      }
       
       // Eaten ghosts should return to the ghost house
       if (this.state === GhostState.EATEN) {
         if (Math.abs(this.x - this.homeX) < 0.5 && Math.abs(this.y - this.homeY) < 0.5) {
           // Ghost has reached home, restore normal state
-          this.setState(powerMode ? GhostState.FRIGHTENED : GhostState.CHASE);
+          this.setState(powerMode ? GhostState.FRIGHTENED : 
+                        (this.type === GhostType.BLINKY ? GhostState.CHASE : GhostState.RANDOM));
         } else {
           // Move towards home
           this.direction = this.getDirectionToTarget(
@@ -116,7 +129,12 @@ export class Ghost {
         }
       } else {
         // Normal movement based on current state
-        this.direction = this.chooseNextDirection(grid);
+        if (this.state === GhostState.RANDOM && (isAtIntersection || shouldChangeRandomDirection)) {
+          this.direction = this.chooseRandomDirection(grid);
+          this.lastRandomDirectionChange = currentTime;
+        } else {
+          this.direction = this.chooseNextDirection(grid);
+        }
       }
     }
     
@@ -135,6 +153,40 @@ export class Ghost {
         this.x += moveDistance;
         break;
     }
+  }
+  
+  // Choose a random direction from available directions
+  chooseRandomDirection(grid: number[][]): Direction {
+    const x = Math.floor(this.x);
+    const y = Math.floor(this.y);
+    
+    // Get available directions (excluding the opposite of current direction)
+    const oppositeDirection = this.getOppositeDirection(this.direction);
+    const availableDirections: Direction[] = [];
+    
+    if (this.isValidMove(x, y - 1, grid, false) && this.direction !== Direction.DOWN) {
+      availableDirections.push(Direction.UP);
+    }
+    
+    if (this.isValidMove(x, y + 1, grid, false) && this.direction !== Direction.UP) {
+      availableDirections.push(Direction.DOWN);
+    }
+    
+    if (this.isValidMove(x - 1, y, grid, false) && this.direction !== Direction.RIGHT) {
+      availableDirections.push(Direction.LEFT);
+    }
+    
+    if (this.isValidMove(x + 1, y, grid, false) && this.direction !== Direction.LEFT) {
+      availableDirections.push(Direction.RIGHT);
+    }
+    
+    // If no valid directions other than going back, allow reverse direction
+    if (availableDirections.length === 0) {
+      availableDirections.push(oppositeDirection);
+    }
+    
+    // Return random direction from available options
+    return availableDirections[Math.floor(Math.random() * availableDirections.length)];
   }
   
   // Choose the next direction based on available paths and target
@@ -320,8 +372,8 @@ export class Ghost {
       return;
     }
     
-    // If frightened, no specific target (movement is random)
-    if (this.state === GhostState.FRIGHTENED) {
+    // If frightened or random, no specific target (movement is random)
+    if (this.state === GhostState.FRIGHTENED || this.state === GhostState.RANDOM) {
       return;
     }
     
@@ -423,6 +475,9 @@ export class Ghost {
         break;
       case GhostState.EATEN:
         this.speed = GHOST_SPEED * 1.5;
+        break;
+      case GhostState.RANDOM:
+        this.speed = GHOST_SPEED * 0.8; // Random ghosts move a bit slower
         break;
       default:
         this.speed = GHOST_SPEED;

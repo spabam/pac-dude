@@ -129,10 +129,10 @@ const GameCanvas: React.FC = () => {
   const resetGame = () => {
     player.current = new Player(PLAYER_START_X, PLAYER_START_Y);
     ghosts.current = [
-      new Ghost(GhostType.BLINKY, 14, 11),
-      new Ghost(GhostType.PINKY, 14, 14),
-      new Ghost(GhostType.INKY, 12, 14),
-      new Ghost(GhostType.CLYDE, 16, 14)
+      new Ghost(GhostType.BLINKY, 14, 11),  // Red ghost - will chase player
+      new Ghost(GhostType.PINKY, 14, 14),   // Pink ghost - will move randomly
+      new Ghost(GhostType.INKY, 12, 14),    // Cyan ghost - will move randomly
+      new Ghost(GhostType.CLYDE, 16, 14)    // Orange ghost - will move randomly
     ];
     
     gameBoard.current = JSON.parse(JSON.stringify(mazeLayout));
@@ -155,10 +155,10 @@ const GameCanvas: React.FC = () => {
   const resetLevel = () => {
     player.current = new Player(PLAYER_START_X, PLAYER_START_Y);
     ghosts.current = [
-      new Ghost(GhostType.BLINKY, 14, 11),
-      new Ghost(GhostType.PINKY, 14, 14),
-      new Ghost(GhostType.INKY, 12, 14),
-      new Ghost(GhostType.CLYDE, 16, 14)
+      new Ghost(GhostType.BLINKY, 14, 11),  // Red ghost - will chase player
+      new Ghost(GhostType.PINKY, 14, 14),   // Pink ghost - will move randomly
+      new Ghost(GhostType.INKY, 12, 14),    // Cyan ghost - will move randomly
+      new Ghost(GhostType.CLYDE, 16, 14)    // Orange ghost - will move randomly
     ];
     
     lastDirection.current = Direction.NONE;
@@ -278,13 +278,16 @@ const GameCanvas: React.FC = () => {
       }
     }
     
+    const currentTime = Date.now();
+    
     // Update all ghosts
     ghosts.current.forEach(ghost => {
       ghost.update(
         deltaTime,
         gameBoard.current,
         { x: player.current.x, y: player.current.y },
-        powerMode.current
+        powerMode.current,
+        currentTime
       );
       
       // Handle tunnel wrapping for ghosts

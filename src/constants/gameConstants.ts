@@ -45,6 +45,7 @@ export enum GhostState {
   SCATTER = "scatter",
   FRIGHTENED = "frightened",
   EATEN = "eaten",
+  RANDOM = "random",  // Add new state for random movement
 }
 
 // Game scores
@@ -67,6 +68,7 @@ export const GHOST_HOME_Y = 14;
 
 // Speeds (cells per second)
 export const PLAYER_SPEED = 8;
-export const GHOST_SPEED = 7.5;
-export const GHOST_FRIGHTENED_SPEED = 4;
-export const GHOST_TUNNEL_SPEED = 4;
+export const GHOST_SPEED = 5.5;  // Reduced from 7.5 to be slower than player
+export const GHOST_FRIGHTENED_SPEED = 3;  // Reduced from 4
+export const GHOST_TUNNEL_SPEED = 2.5;    // Reduced from 4
+export const GHOST_RANDOM_DIRECTION_CHANGE = 1500; // Time in ms between random direction changes
