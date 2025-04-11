@@ -51,12 +51,21 @@ export class Player {
     const moveDistance = this.speed * deltaTime;
     let moved = false;
 
+    // Check if we should apply the next direction immediately
+    if (nextDirection !== Direction.NONE) {
+      console.log("Trying to change to direction:", nextDirection);
+      if (this.canChangeDirection(nextDirection, canMoveFn)) {
+        console.log("Successfully changed direction to:", nextDirection);
+        this.direction = nextDirection;
+      }
+    }
+
     // If player is in a cell center position, they can change direction
     const isAtCellCenter = 
       Math.abs(this.x - Math.floor(this.x) - 0.5) < 0.1 && 
       Math.abs(this.y - Math.floor(this.y) - 0.5) < 0.1;
 
-    // Try to change to requested direction if player is at a cell center
+    // Try again at cell centers for more responsive controls
     if (isAtCellCenter && nextDirection !== Direction.NONE) {
       if (this.canChangeDirection(nextDirection, canMoveFn)) {
         this.direction = nextDirection;

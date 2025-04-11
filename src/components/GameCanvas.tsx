@@ -82,10 +82,14 @@ const GameCanvas: React.FC = () => {
     };
   }, []);
   
-  // Handle keyboard input - modified to use both WASD and arrow keys
+  // Handle keyboard input for both WASD and arrow keys
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const key = e.key.toLowerCase();
+      
+      // Debug key press
+      console.log("Key pressed:", key);
+      
       switch (key) {
         case 'w':
         case 'arrowup':
@@ -271,6 +275,9 @@ const GameCanvas: React.FC = () => {
   
   // Main game update function
   const update = (deltaTime: number) => {
+    // Debug current state
+    console.log("Current direction:", player.current.direction, "Next direction:", nextDirection.current);
+    
     // Update player
     const playerDidMove = player.current.update(
       deltaTime, 
