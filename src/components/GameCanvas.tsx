@@ -301,7 +301,7 @@ const GameCanvas: React.FC = () => {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
     for (let y = 0; y < GRID_HEIGHT; y++) {
-      for (let x = 0; y < GRID_WIDTH; x++) {
+      for (let x = 0; x < GRID_WIDTH; x++) {
         const cellType = gameBoard.current[y][x];
         const drawX = x * CELL_SIZE;
         const drawY = y * CELL_SIZE;
@@ -452,10 +452,8 @@ const GameCanvas: React.FC = () => {
       }
     });
     
-    // Define pacmanSize before using it - restored to original size
+    // Draw Pac-Man using original full size
     const pacmanSize = CELL_SIZE;
-    
-    // Draw Pac-Man with corrected positioning and original size
     const drawX = player.current.x * CELL_SIZE - pacmanSize / 2;
     const drawY = player.current.y * CELL_SIZE - pacmanSize / 2;
     
@@ -492,7 +490,7 @@ const GameCanvas: React.FC = () => {
     ctx.arc(
       drawX + pacmanSize / 2,
       drawY + pacmanSize / 2,
-      pacmanSize / 2, // Original full size
+      pacmanSize / 2,
       startAngle,
       endAngle
     );
