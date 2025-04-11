@@ -1,4 +1,3 @@
-
 import { 
   Direction, 
   GhostType, 
@@ -34,7 +33,7 @@ export class Ghost {
     this.type = type;
     this.x = Math.floor(x) + 0.5; // Ensure ghost starts centered in cell
     this.y = Math.floor(y) + 0.5;
-    this.direction = Direction.UP;
+    this.direction = this.getInitialDirection(type);
     
     // Set all ghosts to RANDOM state initially
     this.state = GhostState.RANDOM;
@@ -64,6 +63,17 @@ export class Ghost {
         this.scatterTargetX = 0;
         this.scatterTargetY = 30;
         break;
+    }
+  }
+  
+  getInitialDirection(type: GhostType): Direction {
+    // Different initial directions for different ghosts
+    switch (type) {
+      case GhostType.BLINKY: return Direction.LEFT;
+      case GhostType.PINKY: return Direction.DOWN;
+      case GhostType.INKY: return Direction.UP;
+      case GhostType.CLYDE: return Direction.RIGHT;
+      default: return Direction.UP;
     }
   }
   
@@ -116,7 +126,9 @@ export class Ghost {
         if (Math.abs(this.x - this.homeX) < 0.5 && Math.abs(this.y - this.homeY) < 0.5) {
           // Ghost has reached home, restore normal state
           this.setState(powerMode ? GhostState.FRIGHTENED : 
-                        (this.type === GhostType.BLINKY ? GhostState.CHASE : GhostState.RANDOM));
+                        GhostState.RANDOM);
+          this.x = this.homeX;
+          this.y = this.homeY;
         } else {
           // Move towards home
           this.direction = this.getDirectionToTarget(
@@ -139,20 +151,65 @@ export class Ghost {
       }
     }
     
-    // Move ghost based on current direction
+    // Check if we can move in the current direction
+    let nextX = Math.floor(this.x);
+    let nextY = Math.floor(this.y);
+    
     switch (this.direction) {
       case Direction.UP:
-        this.y -= moveDistance;
+        if (this.y - moveDistance < Math.floor(this.y)) {
+          nextY -= 1;
+        }
         break;
       case Direction.DOWN:
-        this.y += moveDistance;
+        if (this.y + moveDistance >= Math.floor(this.y) + 1) {
+          nextY += 1;
+        }
         break;
       case Direction.LEFT:
-        this.x -= moveDistance;
+        if (this.x - moveDistance < Math.floor(this.x)) {
+          nextX -= 1;
+        }
         break;
       case Direction.RIGHT:
-        this.x += moveDistance;
+        if (this.x + moveDistance >= Math.floor(this.x) + 1) {
+          nextX += 1;
+        }
         break;
+    }
+    
+    // Check if the next cell is valid (ghosts can pass ghost doors when eaten)
+    const canPassGhostDoor = this.state === GhostState.EATEN;
+    if (this.isValidMove(nextX, nextY, grid, canPassGhostDoor)) {
+      // Move ghost based on current direction
+      switch (this.direction) {
+        case Direction.UP:
+          this.y -= moveDistance;
+          break;
+        case Direction.DOWN:
+          this.y += moveDistance;
+          break;
+        case Direction.LEFT:
+          this.x -= moveDistance;
+          break;
+        case Direction.RIGHT:
+          this.x += moveDistance;
+          break;
+      }
+    } else if (isAtIntersection) {
+      // We hit a wall at an intersection, choose a new direction
+      if (this.state === GhostState.RANDOM) {
+        this.direction = this.chooseRandomDirection(grid);
+      } else {
+        this.direction = this.chooseNextDirection(grid);
+      }
+    }
+    
+    // Handle warping (teleporting from one side to another)
+    if (this.x < 0) {
+      this.x = 28; // Assuming grid width is 28
+    } else if (this.x >= 28) {
+      this.x = 0;
     }
   }
   

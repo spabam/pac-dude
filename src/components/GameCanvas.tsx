@@ -495,12 +495,13 @@ const GameCanvas: React.FC = () => {
     }
     
     // Make mouth animation more fluid
-    const mouthSpeed = 0.1; // Slower animation
-    const t = Math.abs(Math.sin(Date.now() * mouthSpeed));
+    const mouthSpeed = 0.15; // Slightly faster animation
+    const t = Math.sin(Date.now() * mouthSpeed) * 0.5 + 0.5; // Oscillate between 0 and 1
     
     // Calculate mouth angles for more fluid animation
-    const finalStartAngle = startAngle + ((Math.PI * 0.2) * (1 - t));
-    const finalEndAngle = endAngle - ((Math.PI * 0.2) * (1 - t));
+    const mouthOpenAmount = 0.2 * Math.PI;
+    const finalStartAngle = startAngle + (mouthOpenAmount * t);
+    const finalEndAngle = endAngle - (mouthOpenAmount * t);
     
     // Draw Pac-Man body - a bright yellow circle with animated mouth
     ctx.fillStyle = '#FFFF00'; // Bright yellow

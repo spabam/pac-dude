@@ -28,68 +28,7 @@ export class Player {
     
     let moved = false;
     
-    // Handle movement based on current direction
-    if (this.direction !== Direction.NONE) {
-      const prevX = this.x;
-      const prevY = this.y;
-      
-      // Move based on current direction
-      switch (this.direction) {
-        case Direction.UP:
-          this.y -= this.speed * deltaTime;
-          break;
-        case Direction.DOWN:
-          this.y += this.speed * deltaTime;
-          break;
-        case Direction.LEFT:
-          this.x -= this.speed * deltaTime;
-          break;
-        case Direction.RIGHT:
-          this.x += this.speed * deltaTime;
-          break;
-      }
-      
-      // Check if we've moved
-      moved = prevX !== this.x || prevY !== this.y;
-    }
-    
-    // Try to center the player in the corridor when moving
-    this.centerInCorridor();
-    
-    // Handle direction changes
-    this.handleDirectionChange(currentDirection, nextDirection, canMoveFunction);
-    
-    // Handle warping (teleportation from one side to another)
-    this.handleWarping();
-    
-    // Log final position and movement status
-    console.log(`Position: (${this.x.toFixed(2)}, ${this.y.toFixed(2)}), Direction: ${Direction[this.direction]}, Moved: ${moved}`);
-    
-    return moved;
-  }
-  
-  centerInCorridor() {
-    // If moving horizontally, align to the center of the lane vertically
-    if (this.direction === Direction.LEFT || this.direction === Direction.RIGHT) {
-      const targetY = Math.floor(this.y) + 0.5;
-      // Apply a small correction to align with the center of the corridor
-      if (Math.abs(this.y - targetY) < 0.1) {
-        this.y = targetY;
-      }
-    }
-    
-    // If moving vertically, align to the center of the lane horizontally
-    if (this.direction === Direction.UP || this.direction === Direction.DOWN) {
-      const targetX = Math.floor(this.x) + 0.5;
-      // Apply a small correction to align with the center of the corridor
-      if (Math.abs(this.x - targetX) < 0.1) {
-        this.x = targetX;
-      }
-    }
-  }
-  
-  handleDirectionChange(currentDirection: Direction, nextDirection: Direction, canMoveFunction: (x: number, y: number) => boolean) {
-    // Try to change direction if requested
+    // First, try to change direction if requested
     if (nextDirection !== Direction.NONE && nextDirection !== this.direction) {
       const testX = Math.floor(this.x);
       const testY = Math.floor(this.y);
@@ -123,6 +62,94 @@ export class Player {
         } else if (nextDirection === Direction.LEFT || nextDirection === Direction.RIGHT) {
           this.y = Math.floor(this.y) + 0.5;
         }
+      }
+    }
+    
+    // Check if we can move in the current direction
+    if (this.direction !== Direction.NONE) {
+      let nextX = Math.floor(this.x);
+      let nextY = Math.floor(this.y);
+      
+      switch (this.direction) {
+        case Direction.UP:
+          if (this.y - this.speed * deltaTime < Math.floor(this.y)) {
+            nextY -= 1;
+          }
+          break;
+        case Direction.DOWN:
+          if (this.y + this.speed * deltaTime >= Math.floor(this.y) + 1) {
+            nextY += 1;
+          }
+          break;
+        case Direction.LEFT:
+          if (this.x - this.speed * deltaTime < Math.floor(this.x)) {
+            nextX -= 1;
+          }
+          break;
+        case Direction.RIGHT:
+          if (this.x + this.speed * deltaTime >= Math.floor(this.x) + 1) {
+            nextX += 1;
+          }
+          break;
+      }
+      
+      // Only move if the next cell is valid
+      if (canMoveFunction(nextX, nextY)) {
+        const prevX = this.x;
+        const prevY = this.y;
+        
+        // Move based on current direction
+        switch (this.direction) {
+          case Direction.UP:
+            this.y -= this.speed * deltaTime;
+            break;
+          case Direction.DOWN:
+            this.y += this.speed * deltaTime;
+            break;
+          case Direction.LEFT:
+            this.x -= this.speed * deltaTime;
+            break;
+          case Direction.RIGHT:
+            this.x += this.speed * deltaTime;
+            break;
+        }
+        
+        // Check if we've moved
+        moved = prevX !== this.x || prevY !== this.y;
+      } else {
+        // We hit a wall, stop moving in this direction
+        this.direction = Direction.NONE;
+      }
+    }
+    
+    // Try to center the player in the corridor when moving
+    this.centerInCorridor();
+    
+    // Handle warping (teleportation from one side to another)
+    this.handleWarping();
+    
+    // Log final position and movement status
+    console.log(`Position: (${this.x.toFixed(2)}, ${this.y.toFixed(2)}), Direction: ${Direction[this.direction]}, Moved: ${moved}`);
+    
+    return moved;
+  }
+  
+  centerInCorridor() {
+    // If moving horizontally, align to the center of the lane vertically
+    if (this.direction === Direction.LEFT || this.direction === Direction.RIGHT) {
+      const targetY = Math.floor(this.y) + 0.5;
+      // Apply a small correction to align with the center of the corridor
+      if (Math.abs(this.y - targetY) < 0.1) {
+        this.y = targetY;
+      }
+    }
+    
+    // If moving vertically, align to the center of the lane horizontally
+    if (this.direction === Direction.UP || this.direction === Direction.DOWN) {
+      const targetX = Math.floor(this.x) + 0.5;
+      // Apply a small correction to align with the center of the corridor
+      if (Math.abs(this.x - targetX) < 0.1) {
+        this.x = targetX;
       }
     }
   }
