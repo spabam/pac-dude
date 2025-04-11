@@ -1,3 +1,4 @@
+
 import { Direction, PLAYER_SPEED, GRID_WIDTH } from '../constants/gameConstants';
 
 export class Player {
@@ -54,13 +55,14 @@ export class Player {
     // Check if player is near a cell center (for turning)
     const isCentered = (axis: 'x' | 'y'): boolean => {
       const value = axis === 'x' ? this.x : this.y;
-      return Math.abs(value - Math.floor(value) - 0.5) < 0.1;
+      // More forgiving tolerance for checking if centered on an axis
+      return Math.abs(value - Math.floor(value) - 0.5) < 0.15;
     };
 
     // Check if at or near grid alignment point (cell center)
     const isNearCellCenter = isCentered('x') && isCentered('y');
     
-    // Try to apply next direction immediately if we're at a grid point
+    // Try to change direction based on player position
     if (isNearCellCenter) {
       // Snap precisely to cell center for accuracy
       this.x = Math.floor(this.x) + 0.5;
@@ -70,12 +72,12 @@ export class Player {
       if (nextDirection !== Direction.NONE && this.canChangeDirection(nextDirection, canMoveFn)) {
         this.direction = nextDirection;
       } 
-      // If we can't use nextDirection, keep current direction if it's valid
+      // If can't move in current direction, stop
       else if (this.direction !== Direction.NONE && !this.canMoveInCurrentDirection(canMoveFn)) {
         this.direction = Direction.NONE;
       }
     } 
-    // Handle turning at corridor intersections (player is aligned with one axis but not the other)
+    // Handle turning at corridor intersections
     else {
       // Allow turning when aligned with the grid on the appropriate axis
       if (nextDirection !== Direction.NONE && nextDirection !== this.direction) {
@@ -111,7 +113,8 @@ export class Player {
     // Move player based on current direction
     switch (this.direction) {
       case Direction.UP:
-        if (canMoveFn(Math.floor(this.x), Math.floor(this.y - 0.5))) {
+        // Check if we can move up using a more accurate position check
+        if (canMoveFn(Math.floor(this.x), Math.floor(this.y - moveDistance))) {
           this.y -= moveDistance;
           
           // Ensure we stay perfectly centered on the x-axis while moving vertically
@@ -119,13 +122,14 @@ export class Player {
           
           moved = true;
         } else {
-          // If we can't move up, align precisely to the grid
-          this.y = Math.ceil(this.y - 0.01) + 0.5;
+          // Ensure alignment with grid when stopped
+          this.y = Math.ceil(this.y) - 0.5;
           this.direction = Direction.NONE;
         }
         break;
       case Direction.DOWN:
-        if (canMoveFn(Math.floor(this.x), Math.ceil(this.y))) {
+        // Check if we can move down using a more accurate position check
+        if (canMoveFn(Math.floor(this.x), Math.floor(this.y + moveDistance))) {
           this.y += moveDistance;
           
           // Ensure we stay perfectly centered on the x-axis while moving vertically
@@ -133,13 +137,14 @@ export class Player {
           
           moved = true;
         } else {
-          // If we can't move down, align precisely to the grid
-          this.y = Math.floor(this.y + 0.01) - 0.5;
+          // Ensure alignment with grid when stopped
+          this.y = Math.floor(this.y) + 0.5;
           this.direction = Direction.NONE;
         }
         break;
       case Direction.LEFT:
-        if (canMoveFn(Math.floor(this.x - 0.5), Math.floor(this.y))) {
+        // Check if we can move left using a more accurate position check
+        if (canMoveFn(Math.floor(this.x - moveDistance), Math.floor(this.y))) {
           this.x -= moveDistance;
           
           // Ensure we stay perfectly centered on the y-axis while moving horizontally
@@ -147,13 +152,14 @@ export class Player {
           
           moved = true;
         } else {
-          // If we can't move left, align precisely to the grid
-          this.x = Math.ceil(this.x - 0.01) + 0.5;
+          // Ensure alignment with grid when stopped
+          this.x = Math.ceil(this.x) - 0.5;
           this.direction = Direction.NONE;
         }
         break;
       case Direction.RIGHT:
-        if (canMoveFn(Math.ceil(this.x), Math.floor(this.y))) {
+        // Check if we can move right using a more accurate position check
+        if (canMoveFn(Math.floor(this.x + moveDistance), Math.floor(this.y))) {
           this.x += moveDistance;
           
           // Ensure we stay perfectly centered on the y-axis while moving horizontally
@@ -161,8 +167,8 @@ export class Player {
           
           moved = true;
         } else {
-          // If we can't move right, align precisely to the grid
-          this.x = Math.floor(this.x + 0.01) - 0.5;
+          // Ensure alignment with grid when stopped
+          this.x = Math.floor(this.x) + 0.5;
           this.direction = Direction.NONE;
         }
         break;
