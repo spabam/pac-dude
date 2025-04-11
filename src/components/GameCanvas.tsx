@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect, useState } from 'react';
 import { 
   GRID_WIDTH, 
@@ -25,6 +24,7 @@ import { Ghost } from '../game/Ghost';
 import { useIsMobile } from '../hooks/use-mobile';
 
 const GameCanvas: React.FC = () => {
+  
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [score, setScore] = useState<number>(0);
   const [lives, setLives] = useState<number>(3);
@@ -34,12 +34,13 @@ const GameCanvas: React.FC = () => {
   const [highScore, setHighScore] = useState<number>(0);
   const isMobile = useIsMobile();
   
+  // Initialize player and ghosts with proper starting positions
   const player = useRef(new Player(PLAYER_START_X, PLAYER_START_Y));
   const ghosts = useRef([
-    new Ghost(GhostType.BLINKY, 14, 11),
-    new Ghost(GhostType.PINKY, 14, 14),
-    new Ghost(GhostType.INKY, 12, 14),
-    new Ghost(GhostType.CLYDE, 16, 14)
+    new Ghost(GhostType.BLINKY, 14, 11),  // Red ghost
+    new Ghost(GhostType.PINKY, 14, 14),   // Pink ghost
+    new Ghost(GhostType.INKY, 12, 14),    // Cyan ghost
+    new Ghost(GhostType.CLYDE, 16, 14)    // Orange ghost
   ]);
   
   const gameBoard = useRef<number[][]>(JSON.parse(JSON.stringify(mazeLayout)));
@@ -48,6 +49,7 @@ const GameCanvas: React.FC = () => {
   const ghostCombo = useRef<number>(1);
   const lastDirection = useRef<Direction>(Direction.NONE);
   const nextDirection = useRef<Direction>(Direction.NONE);
+  
   
   useEffect(() => {
     const savedHighScore = localStorage.getItem('pacmanHighScore');
@@ -189,6 +191,7 @@ const GameCanvas: React.FC = () => {
   };
   
   const canMove = (x: number, y: number): boolean => {
+    // Check if we're out of bounds
     if (x < 0 || x >= GRID_WIDTH || y < 0 || y >= GRID_HEIGHT) {
       return false;
     }
@@ -251,6 +254,9 @@ const GameCanvas: React.FC = () => {
   };
   
   const update = (deltaTime: number) => {
+    // Only update if the game is actually playing
+    if (gameState !== GameState.PLAYING) return;
+    
     // Update player
     const playerDidMove = player.current.update(
       deltaTime, 
@@ -301,6 +307,7 @@ const GameCanvas: React.FC = () => {
     
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
+    // Draw maze
     for (let y = 0; y < GRID_HEIGHT; y++) {
       for (let x = 0; x < GRID_WIDTH; x++) {
         const cellType = gameBoard.current[y][x];
@@ -340,6 +347,7 @@ const GameCanvas: React.FC = () => {
       }
     }
     
+    // Draw ghosts - make sure to draw them before player so player appears on top
     ghosts.current.forEach(ghost => {
       const drawX = ghost.x * CELL_SIZE;
       const drawY = ghost.y * CELL_SIZE;
@@ -370,6 +378,7 @@ const GameCanvas: React.FC = () => {
         }
       }
       
+      // Draw ghost body
       ctx.fillStyle = ghostColor;
       ctx.beginPath();
       ctx.arc(
@@ -399,6 +408,7 @@ const GameCanvas: React.FC = () => {
       ctx.lineTo(drawX, drawY + CELL_SIZE / 2 - 2);
       ctx.fill();
       
+      // Draw ghost eyes
       ctx.fillStyle = '#FFFFFF';
       ctx.beginPath();
       ctx.arc(
@@ -451,6 +461,7 @@ const GameCanvas: React.FC = () => {
       }
     });
     
+    // Draw player
     const drawX = player.current.x * CELL_SIZE;
     const drawY = player.current.y * CELL_SIZE;
     
@@ -494,6 +505,7 @@ const GameCanvas: React.FC = () => {
     ctx.lineTo(drawX + CELL_SIZE / 2, drawY + CELL_SIZE / 2);
     ctx.fill();
     
+    // Draw game state overlays
     if (gameState === GameState.MENU) {
       drawMenu(ctx, canvas.width, canvas.height);
     } else if (gameState === GameState.GAME_OVER) {
@@ -504,6 +516,7 @@ const GameCanvas: React.FC = () => {
       drawWin(ctx, canvas.width, canvas.height);
     }
   };
+  
   
   const drawMenu = (ctx: CanvasRenderingContext2D, width: number, height: number) => {
     ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';

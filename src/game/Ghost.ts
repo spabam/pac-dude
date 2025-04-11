@@ -1,3 +1,4 @@
+
 import { 
   Direction, 
   GhostType, 
@@ -29,10 +30,10 @@ export class Ghost {
 
   constructor(type: GhostType, x: number, y: number) {
     this.type = type;
-    this.x = x;
-    this.y = y;
+    this.x = Math.floor(x) + 0.5; // Ensure ghost starts centered in cell
+    this.y = Math.floor(y) + 0.5;
     this.direction = Direction.UP;
-    this.state = GhostState.CHASE;
+    this.state = GhostState.CHASE; // Start in chase mode to immediately pursue player
     this.speed = GHOST_SPEED;
     this.targetX = 0;
     this.targetY = 0;
@@ -93,7 +94,7 @@ export class Ghost {
       Math.abs(this.y - Math.floor(this.y) - 0.5) < 0.1;
     
     if (isAtIntersection) {
-      // Snap to grid center
+      // Snap to grid center for precision
       this.x = Math.floor(this.x) + 0.5;
       this.y = Math.floor(this.y) + 0.5;
       

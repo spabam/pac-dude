@@ -46,10 +46,8 @@ export const useGameLoop = ({
       // Adjust for potential frame skips
       previousTimeRef.current = time - (deltaTime % fpsInterval.current);
       
-      // Only run game logic if the game is in playing state
-      if (gameState === GameState.PLAYING) {
-        update(deltaTime / 1000); // Convert ms to seconds
-      }
+      // Always call update, but let the function handle game state internally
+      update(deltaTime / 1000); // Convert ms to seconds
       
       // Always render, even in paused/menu state
       render();
