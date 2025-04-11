@@ -1,3 +1,4 @@
+
 import { Direction, PLAYER_SPEED } from '../constants/gameConstants';
 
 export class Player {
@@ -9,8 +10,9 @@ export class Player {
   targetY: number | null;
 
   constructor(x: number, y: number) {
-    this.x = x;
-    this.y = y;
+    // Ensure player starts precisely centered in a cell
+    this.x = Math.floor(x) + 0.5;
+    this.y = Math.floor(y) + 0.5;
     this.direction = Direction.NONE;
     this.speed = PLAYER_SPEED;
     this.targetX = null;
@@ -19,19 +21,19 @@ export class Player {
 
   // Check if a direction is valid based on the current position
   canChangeDirection(dir: Direction, canMoveFn: (x: number, y: number) => boolean): boolean {
-    const nextX = Math.floor(this.x);
-    const nextY = Math.floor(this.y);
+    const cellX = Math.floor(this.x);
+    const cellY = Math.floor(this.y);
 
     // Calculate position after potential direction change
     switch (dir) {
       case Direction.UP:
-        return canMoveFn(nextX, nextY - 1);
+        return canMoveFn(cellX, cellY - 1);
       case Direction.DOWN:
-        return canMoveFn(nextX, nextY + 1);
+        return canMoveFn(cellX, cellY + 1);
       case Direction.LEFT:
-        return canMoveFn(nextX - 1, nextY);
+        return canMoveFn(cellX - 1, cellY);
       case Direction.RIGHT:
-        return canMoveFn(nextX + 1, nextY);
+        return canMoveFn(cellX + 1, cellY);
       case Direction.NONE:
         return true;
       default:
@@ -50,37 +52,34 @@ export class Player {
     const moveDistance = this.speed * deltaTime;
     let moved = false;
 
-    // Always try to change to the next direction first
-    if (nextDirection !== Direction.NONE) {
-      console.log("Trying to change to direction:", nextDirection);
-      // Just set the direction immediately if this is the first movement
-      if (this.direction === Direction.NONE) {
-        this.direction = nextDirection;
-        console.log("First movement, setting direction to:", nextDirection);
-      } 
-      // Otherwise check if we can change to the new direction
-      else if (this.canChangeDirection(nextDirection, canMoveFn)) {
-        this.direction = nextDirection;
-        console.log("Successfully changed direction to:", nextDirection);
-      }
-    }
-
-    // If player is in a cell center position, they can change direction more easily
+    // Check if at grid alignment point (cell center)
     const isAtCellCenter = 
-      Math.abs(this.x - Math.floor(this.x) - 0.5) < 0.1 && 
-      Math.abs(this.y - Math.floor(this.y) - 0.5) < 0.1;
+      Math.abs(this.x - Math.floor(this.x) - 0.5) < 0.05 && 
+      Math.abs(this.y - Math.floor(this.y) - 0.5) < 0.05;
 
-    // Try again at cell centers for more responsive controls
-    if (isAtCellCenter && nextDirection !== Direction.NONE) {
-      if (this.canChangeDirection(nextDirection, canMoveFn)) {
+    // At cell centers, we can change direction more reliably
+    if (isAtCellCenter) {
+      // Snap precisely to cell center for accuracy
+      this.x = Math.floor(this.x) + 0.5;
+      this.y = Math.floor(this.y) + 0.5;
+      
+      // Try to apply nextDirection at cell centers
+      if (nextDirection !== Direction.NONE && this.canChangeDirection(nextDirection, canMoveFn)) {
         this.direction = nextDirection;
-      }
-    }
-
-    // If player can't move in current direction, try using the last known direction
-    if (!this.canMoveInCurrentDirection(canMoveFn) && currentDirection !== Direction.NONE) {
-      if (this.canChangeDirection(currentDirection, canMoveFn)) {
+      } 
+      // If we can't use nextDirection, try currentDirection as fallback
+      else if (currentDirection !== Direction.NONE && 
+               currentDirection !== this.direction && 
+               this.canChangeDirection(currentDirection, canMoveFn)) {
         this.direction = currentDirection;
+      }
+    } else {
+      // Between cell centers, only try changing direction if we're at the first movement
+      // or we're very close to a cell center
+      if (this.direction === Direction.NONE) {
+        if (nextDirection !== Direction.NONE && this.canChangeDirection(nextDirection, canMoveFn)) {
+          this.direction = nextDirection;
+        }
       }
     }
 
@@ -89,6 +88,10 @@ export class Player {
       case Direction.UP:
         if (canMoveFn(Math.floor(this.x), Math.floor(this.y - 0.1))) {
           this.y -= moveDistance;
+          
+          // Ensure we stay centered on the x-axis while moving vertically
+          this.x = Math.floor(this.x) + 0.5;
+          
           moved = true;
         } else {
           // Align to grid if hitting a wall
@@ -98,6 +101,10 @@ export class Player {
       case Direction.DOWN:
         if (canMoveFn(Math.floor(this.x), Math.floor(this.y + 1))) {
           this.y += moveDistance;
+          
+          // Ensure we stay centered on the x-axis while moving vertically
+          this.x = Math.floor(this.x) + 0.5;
+          
           moved = true;
         } else {
           // Align to grid if hitting a wall
@@ -107,6 +114,10 @@ export class Player {
       case Direction.LEFT:
         if (canMoveFn(Math.floor(this.x - 0.1), Math.floor(this.y))) {
           this.x -= moveDistance;
+          
+          // Ensure we stay centered on the y-axis while moving horizontally
+          this.y = Math.floor(this.y) + 0.5;
+          
           moved = true;
         } else {
           // Align to grid if hitting a wall
@@ -116,6 +127,10 @@ export class Player {
       case Direction.RIGHT:
         if (canMoveFn(Math.floor(this.x + 1), Math.floor(this.y))) {
           this.x += moveDistance;
+          
+          // Ensure we stay centered on the y-axis while moving horizontally
+          this.y = Math.floor(this.y) + 0.5;
+          
           moved = true;
         } else {
           // Align to grid if hitting a wall
@@ -129,18 +144,18 @@ export class Player {
 
   // Check if player can move in their current direction
   canMoveInCurrentDirection(canMoveFn: (x: number, y: number) => boolean): boolean {
-    const currentX = Math.floor(this.x);
-    const currentY = Math.floor(this.y);
+    const cellX = Math.floor(this.x);
+    const cellY = Math.floor(this.y);
 
     switch (this.direction) {
       case Direction.UP:
-        return canMoveFn(currentX, currentY - 1);
+        return canMoveFn(cellX, cellY - 1);
       case Direction.DOWN:
-        return canMoveFn(currentX, currentY + 1);
+        return canMoveFn(cellX, cellY + 1);
       case Direction.LEFT:
-        return canMoveFn(currentX - 1, currentY);
+        return canMoveFn(cellX - 1, cellY);
       case Direction.RIGHT:
-        return canMoveFn(currentX + 1, currentY);
+        return canMoveFn(cellX + 1, cellY);
       case Direction.NONE:
         return true;
       default:
