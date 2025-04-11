@@ -1,5 +1,5 @@
 
-import { Direction, PLAYER_SPEED } from '../constants/gameConstants';
+import { Direction, PLAYER_SPEED, GRID_WIDTH } from '../constants/gameConstants';
 
 export class Player {
   x: number;
