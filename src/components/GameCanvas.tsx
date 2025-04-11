@@ -1,3 +1,4 @@
+
 import React, { useRef, useEffect, useState } from 'react';
 import { 
   GRID_WIDTH, 
@@ -247,8 +248,14 @@ const GameCanvas: React.FC = () => {
       const ghostX = Math.floor(ghost.x);
       const ghostY = Math.floor(ghost.y);
       
-      // Check collision
-      if (playerX === ghostX && playerY === ghostY) {
+      // Check collision with a more forgiving hitbox
+      const distance = Math.sqrt(
+        Math.pow(player.current.x - ghost.x, 2) + 
+        Math.pow(player.current.y - ghost.y, 2)
+      );
+      
+      // If player and ghost are close enough
+      if (distance < 0.7) {
         if (ghost.state === GhostState.FRIGHTENED) {
           // Player eats ghost
           ghost.setState(GhostState.EATEN);
@@ -275,9 +282,6 @@ const GameCanvas: React.FC = () => {
   
   // Main game update function
   const update = (deltaTime: number) => {
-    // Debug current state
-    console.log("Current direction:", player.current.direction, "Next direction:", nextDirection.current);
-    
     // Update player
     const playerDidMove = player.current.update(
       deltaTime, 
@@ -468,8 +472,8 @@ const GameCanvas: React.FC = () => {
       );
       ctx.fill();
       
-      // Draw pupils (if not eaten)
-      if (ghost.state !== GhostState.FRIGHTENED) {
+      // Draw pupils (look in direction of movement or at player when frightened)
+      if (ghost.state !== GhostState.FRIGHTENED || ghost.state === GhostState.EATEN) {
         ctx.fillStyle = '#0000FF';
         
         // Determine pupil position based on ghost direction

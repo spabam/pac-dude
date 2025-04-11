@@ -1,3 +1,4 @@
+
 import { 
   Direction, 
   GhostType, 
@@ -93,6 +94,10 @@ export class Ghost {
       Math.abs(this.y - Math.floor(this.y) - 0.5) < 0.1;
     
     if (isAtIntersection) {
+      // Snap to grid center
+      this.x = Math.floor(this.x) + 0.5;
+      this.y = Math.floor(this.y) + 0.5;
+      
       // Eaten ghosts should return to the ghost house
       if (this.state === GhostState.EATEN) {
         if (Math.abs(this.x - this.homeX) < 0.5 && Math.abs(this.y - this.homeY) < 0.5) {
