@@ -453,11 +453,9 @@ const GameCanvas: React.FC = () => {
     });
     
     // Draw Pac-Man with correct size and improved positioning
-    // Using a size factor of 1.5x the cell size for better visibility
     const pacmanSize = CELL_SIZE * 1.5;
     
-    // Critical fix: Correctly calculate Pac-Man's rendering position
-    // We need to center the pacman based on his game coordinates
+    // Fix Pac-Man's rendering position to be properly centered on his game coordinates
     const drawX = (player.current.x * CELL_SIZE) - (pacmanSize / 2) + (CELL_SIZE / 2);
     const drawY = (player.current.y * CELL_SIZE) - (pacmanSize / 2) + (CELL_SIZE / 2);
     

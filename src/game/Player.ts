@@ -53,11 +53,21 @@ export class Player {
     let moved = false;
 
     // More forgiving tolerance for checking if centered on an axis
-    // Increased from 0.4 to 0.45 to make turning easier
+    // Increased from 0.4 to 0.48 to make turning even easier
     const isCentered = (axis: 'x' | 'y'): boolean => {
       const value = axis === 'x' ? this.x : this.y;
-      return Math.abs(value - Math.floor(value) - 0.5) < 0.45;
+      return Math.abs(value - Math.floor(value) - 0.5) < 0.48;
     };
+
+    // Force initial movement if we're still at starting position and direction is none
+    if (this.direction === Direction.NONE && nextDirection !== Direction.NONE) {
+      if (this.canChangeDirection(nextDirection, canMoveFn)) {
+        this.direction = nextDirection;
+        // Force snap to grid center
+        this.x = Math.floor(this.x) + 0.5;
+        this.y = Math.floor(this.y) + 0.5;
+      }
+    }
 
     // Always try to apply the next direction first if possible
     if (nextDirection !== Direction.NONE && nextDirection !== this.direction) {
@@ -95,18 +105,8 @@ export class Player {
       }
     }
     
-    // Handle wall corner cases (special turning cases near walls)
+    // Extra aggressive wall corner turn handling for better responsiveness
     this.handleWallCornerTurns(nextDirection, canMoveFn);
-    
-    // If we're not already moving, try to start moving in next direction
-    if (this.direction === Direction.NONE && nextDirection !== Direction.NONE) {
-      if (this.canChangeDirection(nextDirection, canMoveFn)) {
-        // Force snap to grid center before starting movement
-        this.x = Math.floor(this.x) + 0.5;
-        this.y = Math.floor(this.y) + 0.5;
-        this.direction = nextDirection;
-      }
-    }
     
     // Move player based on current direction with improved centering
     switch (this.direction) {
@@ -114,15 +114,15 @@ export class Player {
         if (canMoveFn(Math.floor(this.x), Math.floor(this.y - moveDistance))) {
           this.y -= moveDistance;
           
-          // Stronger center snapping on X axis while moving vertically
+          // Very aggressive center snapping on X axis while moving vertically
           if (Math.abs(this.x - Math.floor(this.x) - 0.5) < 0.1) {
             this.x = Math.floor(this.x) + 0.5; // Perfect centering
           }
           // Aggressive gradual centering - pull toward center while moving
           else if (this.x > Math.floor(this.x) + 0.5) {
-            this.x = Math.max(this.x - 0.1, Math.floor(this.x) + 0.5);
+            this.x = Math.max(this.x - 0.2, Math.floor(this.x) + 0.5);
           } else if (this.x < Math.floor(this.x) + 0.5) {
-            this.x = Math.min(this.x + 0.1, Math.floor(this.x) + 0.5);
+            this.x = Math.min(this.x + 0.2, Math.floor(this.x) + 0.5);
           }
           
           moved = true;
@@ -137,15 +137,15 @@ export class Player {
         if (canMoveFn(Math.floor(this.x), Math.floor(this.y + moveDistance))) {
           this.y += moveDistance;
           
-          // Stronger center snapping on X axis while moving vertically
+          // Very aggressive center snapping on X axis while moving vertically
           if (Math.abs(this.x - Math.floor(this.x) - 0.5) < 0.1) {
             this.x = Math.floor(this.x) + 0.5; // Perfect centering
           }
           // Aggressive gradual centering - pull toward center while moving
           else if (this.x > Math.floor(this.x) + 0.5) {
-            this.x = Math.max(this.x - 0.1, Math.floor(this.x) + 0.5);
+            this.x = Math.max(this.x - 0.2, Math.floor(this.x) + 0.5);
           } else if (this.x < Math.floor(this.x) + 0.5) {
-            this.x = Math.min(this.x + 0.1, Math.floor(this.x) + 0.5);
+            this.x = Math.min(this.x + 0.2, Math.floor(this.x) + 0.5);
           }
           
           moved = true;
@@ -160,15 +160,15 @@ export class Player {
         if (canMoveFn(Math.floor(this.x - moveDistance), Math.floor(this.y))) {
           this.x -= moveDistance;
           
-          // Stronger center snapping on Y axis while moving horizontally
+          // Very aggressive center snapping on Y axis while moving horizontally
           if (Math.abs(this.y - Math.floor(this.y) - 0.5) < 0.1) {
             this.y = Math.floor(this.y) + 0.5; // Perfect centering
           }
           // Aggressive gradual centering - pull toward center while moving
           else if (this.y > Math.floor(this.y) + 0.5) {
-            this.y = Math.max(this.y - 0.1, Math.floor(this.y) + 0.5);
+            this.y = Math.max(this.y - 0.2, Math.floor(this.y) + 0.5);
           } else if (this.y < Math.floor(this.y) + 0.5) {
-            this.y = Math.min(this.y + 0.1, Math.floor(this.y) + 0.5);
+            this.y = Math.min(this.y + 0.2, Math.floor(this.y) + 0.5);
           }
           
           moved = true;
@@ -183,15 +183,15 @@ export class Player {
         if (canMoveFn(Math.floor(this.x + moveDistance), Math.floor(this.y))) {
           this.x += moveDistance;
           
-          // Stronger center snapping on Y axis while moving horizontally
+          // Very aggressive center snapping on Y axis while moving horizontally
           if (Math.abs(this.y - Math.floor(this.y) - 0.5) < 0.1) {
             this.y = Math.floor(this.y) + 0.5; // Perfect centering
           }
           // Aggressive gradual centering - pull toward center while moving
           else if (this.y > Math.floor(this.y) + 0.5) {
-            this.y = Math.max(this.y - 0.1, Math.floor(this.y) + 0.5);
+            this.y = Math.max(this.y - 0.2, Math.floor(this.y) + 0.5);
           } else if (this.y < Math.floor(this.y) + 0.5) {
-            this.y = Math.min(this.y + 0.1, Math.floor(this.y) + 0.5);
+            this.y = Math.min(this.y + 0.2, Math.floor(this.y) + 0.5);
           }
           
           moved = true;
@@ -244,8 +244,11 @@ export class Player {
       }
     };
     
-    // More aggressive wall corner detection
-    if ((hasWallAhead() || this.direction === Direction.NONE) && nextDirection !== this.direction) {
+    // More aggressive wall corner detection with less strict tolerances
+    const nearCell = Math.abs(this.x - Math.floor(this.x) - 0.5) < 0.4 &&
+                    Math.abs(this.y - Math.floor(this.y) - 0.5) < 0.4;
+    
+    if (nearCell && (hasWallAhead() || this.direction === Direction.NONE) && nextDirection !== this.direction) {
       if (canTurn(nextDirection)) {
         // When turning from horizontal to vertical movement
         if ((this.direction === Direction.LEFT || this.direction === Direction.RIGHT) && 
