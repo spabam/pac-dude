@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect, useState } from 'react';
 import { 
   GRID_WIDTH, 
@@ -68,39 +67,45 @@ const GameCanvas: React.FC = () => {
     }
   }, [score, highScore]);
   
-  // Prevent arrow keys from scrolling the page
+  // Prevent arrow keys and WASD from scrolling the page
   useEffect(() => {
-    const preventDefaultForArrowKeys = (e: KeyboardEvent) => {
-      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'a', 's', 'd', ' '].includes(e.key.toLowerCase())) {
+    const preventDefaultForGameKeys = (e: KeyboardEvent) => {
+      const gameKeys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'a', 's', 'd', ' '];
+      if (gameKeys.includes(e.key.toLowerCase())) {
         e.preventDefault();
       }
     };
     
-    window.addEventListener('keydown', preventDefaultForArrowKeys);
+    window.addEventListener('keydown', preventDefaultForGameKeys);
     return () => {
-      window.removeEventListener('keydown', preventDefaultForArrowKeys);
+      window.removeEventListener('keydown', preventDefaultForGameKeys);
     };
   }, []);
   
-  // Handle keyboard input - modified to use WASD keys
+  // Handle keyboard input - modified to use both WASD and arrow keys
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      switch (e.key.toLowerCase()) {
+      const key = e.key.toLowerCase();
+      switch (key) {
         case 'w':
+        case 'arrowup':
           nextDirection.current = Direction.UP;
           break;
         case 's':
+        case 'arrowdown':
           nextDirection.current = Direction.DOWN;
           break;
         case 'a':
+        case 'arrowleft':
           nextDirection.current = Direction.LEFT;
           break;
         case 'd':
+        case 'arrowright':
           nextDirection.current = Direction.RIGHT;
           break;
         case ' ':
           // Space to start game or pause
-          if (gameState === GameState.MENU || gameState === GameState.GAME_OVER) {
+          if (gameState === GameState.MENU || gameState === GameState.GAME_OVER || gameState === GameState.WIN) {
             resetGame();
           } else if (gameState === GameState.PLAYING) {
             setGameState(GameState.PAUSE);
@@ -705,7 +710,7 @@ const GameCanvas: React.FC = () => {
             <div className="col-start-2 row-start-2">
               <button
                 onClick={() => {
-                  if (gameState === GameState.MENU || gameState === GameState.GAME_OVER) {
+                  if (gameState === GameState.MENU || gameState === GameState.GAME_OVER || gameState === GameState.WIN) {
                     resetGame();
                   } else if (gameState === GameState.PLAYING) {
                     setGameState(GameState.PAUSE);

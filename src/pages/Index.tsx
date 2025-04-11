@@ -12,7 +12,7 @@ const Index = () => {
         <GameCanvas />
       </main>
       <footer className="mt-8 text-center text-sm text-muted-foreground">
-        <p>Use W, A, S, D keys to move, space to start/pause</p>
+        <p>Use arrow keys or WASD to move, space to start/pause</p>
         <p className="mt-2">Created with Lovable ❤️</p>
       </footer>
     </div>
