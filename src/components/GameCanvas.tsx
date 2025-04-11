@@ -300,7 +300,7 @@ const GameCanvas: React.FC = () => {
     
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    for (let y = 0; y < GRID_HEIGHT; y++) {
+    for (let y = 0;y < GRID_HEIGHT; y++) {
       for (let x = 0; x < GRID_WIDTH; x++) {
         const cellType = gameBoard.current[y][x];
         const drawX = x * CELL_SIZE;
@@ -452,10 +452,11 @@ const GameCanvas: React.FC = () => {
       }
     });
     
-    // Larger Pacman size - 1.5x cell size
+    // Draw Pac-Man with correct size and position
+    // Using a size factor of 1.5x the cell size
     const pacmanSize = CELL_SIZE * 1.5;
-    const drawX = player.current.x * CELL_SIZE - pacmanSize / 2 + CELL_SIZE / 2;
-    const drawY = player.current.y * CELL_SIZE - pacmanSize / 2 + CELL_SIZE / 2;
+    const drawX = (player.current.x * CELL_SIZE) - (pacmanSize / 2) + (CELL_SIZE / 2);
+    const drawY = (player.current.y * CELL_SIZE) - (pacmanSize / 2) + (CELL_SIZE / 2);
     
     let startAngle = 0.2 * Math.PI;
     let endAngle = 1.8 * Math.PI;
@@ -479,20 +480,24 @@ const GameCanvas: React.FC = () => {
         break;
     }
     
+    // Animate mouth opening/closing
     const mouthSpeed = 0.15;
     const t = Math.abs(Math.sin(Date.now() * mouthSpeed));
     
-    startAngle = startAngle * t;
-    endAngle = endAngle + ((2 * Math.PI - endAngle) * (1 - t));
+    // Calculate mouth angles
+    const mouthOpen = 0.2 * Math.PI;  // Maximum mouth opening
+    const finalStartAngle = startAngle * t;
+    const finalEndAngle = endAngle + ((2 * Math.PI - endAngle) * (1 - t));
     
+    // Draw Pac-Man body (yellow circle with mouth)
     ctx.fillStyle = '#FFFF00';
     ctx.beginPath();
     ctx.arc(
       drawX + pacmanSize / 2,
       drawY + pacmanSize / 2,
       pacmanSize / 2,
-      startAngle,
-      endAngle
+      finalStartAngle,
+      finalEndAngle
     );
     ctx.lineTo(drawX + pacmanSize / 2, drawY + pacmanSize / 2);
     ctx.fill();

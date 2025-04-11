@@ -52,17 +52,17 @@ export class Player {
     const moveDistance = this.speed * deltaTime;
     let moved = false;
 
-    // Check if player is near a cell center (for turning)
+    // More forgiving tolerance for checking if centered on an axis
+    // Increased from 0.3 to 0.4 to make turning easier
     const isCentered = (axis: 'x' | 'y'): boolean => {
       const value = axis === 'x' ? this.x : this.y;
-      // More forgiving tolerance for checking if centered on an axis (increased from 0.25 to 0.3)
-      return Math.abs(value - Math.floor(value) - 0.5) < 0.3;
+      return Math.abs(value - Math.floor(value) - 0.5) < 0.4;
     };
 
-    // Check if at or near grid alignment point (cell center)
+    // Check if we're at or near grid alignment point (cell center)
     const isNearCellCenter = isCentered('x') && isCentered('y');
     
-    // Try to change direction based on player position
+    // Try to change direction if we're well-positioned to do so
     if (isNearCellCenter) {
       // Snap precisely to cell center for accuracy
       this.x = Math.floor(this.x) + 0.5;
@@ -72,56 +72,57 @@ export class Player {
       if (nextDirection !== Direction.NONE && this.canChangeDirection(nextDirection, canMoveFn)) {
         this.direction = nextDirection;
       } 
-      // If can't move in current direction, stop
+      // If we can't move in current direction, stop
       else if (this.direction !== Direction.NONE && !this.canMoveInCurrentDirection(canMoveFn)) {
         this.direction = Direction.NONE;
       }
     } 
+    
     // Handle turning at corridor intersections
-    else {
-      // Allow turning when aligned with the grid on the appropriate axis
-      if (nextDirection !== Direction.NONE && nextDirection !== this.direction) {
-        // For horizontal turns (left/right), player should be centered on y-axis
-        if ((nextDirection === Direction.LEFT || nextDirection === Direction.RIGHT) && isCentered('y')) {
-          if (this.canChangeDirection(nextDirection, canMoveFn)) {
-            // Snap to y-axis grid line when turning left/right
-            this.y = Math.floor(this.y) + 0.5;
-            this.direction = nextDirection;
-          }
+    if (nextDirection !== Direction.NONE && nextDirection !== this.direction) {
+      // For horizontal turns (left/right), player should be centered on y-axis
+      if ((nextDirection === Direction.LEFT || nextDirection === Direction.RIGHT) && isCentered('y')) {
+        if (this.canChangeDirection(nextDirection, canMoveFn)) {
+          // Snap to y-axis grid line when turning left/right
+          this.y = Math.floor(this.y) + 0.5;
+          this.direction = nextDirection;
         }
-        // For vertical turns (up/down), player should be centered on x-axis
-        else if ((nextDirection === Direction.UP || nextDirection === Direction.DOWN) && isCentered('x')) {
-          if (this.canChangeDirection(nextDirection, canMoveFn)) {
-            // Snap to x-axis grid line when turning up/down
-            this.x = Math.floor(this.x) + 0.5;
-            this.direction = nextDirection;
-          }
+      }
+      // For vertical turns (up/down), player should be centered on x-axis
+      else if ((nextDirection === Direction.UP || nextDirection === Direction.DOWN) && isCentered('x')) {
+        if (this.canChangeDirection(nextDirection, canMoveFn)) {
+          // Snap to x-axis grid line when turning up/down
+          this.x = Math.floor(this.x) + 0.5;
+          this.direction = nextDirection;
         }
       }
     }
 
-    // If we're not moving yet, try to start moving in next direction
+    // If we're not already moving, try to start moving in next direction
     if (this.direction === Direction.NONE && nextDirection !== Direction.NONE) {
       if (this.canChangeDirection(nextDirection, canMoveFn)) {
-        // Snap to grid before starting movement for better alignment
+        // Force snap to grid center before starting movement for better alignment
         this.x = Math.floor(this.x) + 0.5;
         this.y = Math.floor(this.y) + 0.5;
         this.direction = nextDirection;
       }
     }
-
-    // Handle all corner turns
-    this.handleAllCornerTurns(nextDirection, canMoveFn, isCentered);
     
-    // Move player based on current direction - increased movement fidelity
+    // Move player based on current direction - improved movement fidelity
     switch (this.direction) {
       case Direction.UP:
         if (canMoveFn(Math.floor(this.x), Math.floor(this.y - moveDistance))) {
           this.y -= moveDistance;
           
-          // Ensure player stays centered on the x-axis while moving vertically
-          if (isCentered('x')) {
+          // Strong center snapping on X axis while moving vertically
+          if (Math.abs(this.x - Math.floor(this.x) - 0.5) < 0.1) {
             this.x = Math.floor(this.x) + 0.5;
+          }
+          // Gradual centering - slowly pull toward center while moving
+          else if (this.x > Math.floor(this.x) + 0.5) {
+            this.x = Math.max(this.x - 0.05, Math.floor(this.x) + 0.5);
+          } else if (this.x < Math.floor(this.x) + 0.5) {
+            this.x = Math.min(this.x + 0.05, Math.floor(this.x) + 0.5);
           }
           
           moved = true;
@@ -131,13 +132,20 @@ export class Player {
           this.direction = Direction.NONE;
         }
         break;
+        
       case Direction.DOWN:
         if (canMoveFn(Math.floor(this.x), Math.floor(this.y + moveDistance))) {
           this.y += moveDistance;
           
-          // Ensure player stays centered on the x-axis while moving vertically
-          if (isCentered('x')) {
+          // Strong center snapping on X axis while moving vertically
+          if (Math.abs(this.x - Math.floor(this.x) - 0.5) < 0.1) {
             this.x = Math.floor(this.x) + 0.5;
+          }
+          // Gradual centering - slowly pull toward center while moving
+          else if (this.x > Math.floor(this.x) + 0.5) {
+            this.x = Math.max(this.x - 0.05, Math.floor(this.x) + 0.5);
+          } else if (this.x < Math.floor(this.x) + 0.5) {
+            this.x = Math.min(this.x + 0.05, Math.floor(this.x) + 0.5);
           }
           
           moved = true;
@@ -147,13 +155,20 @@ export class Player {
           this.direction = Direction.NONE;
         }
         break;
+        
       case Direction.LEFT:
         if (canMoveFn(Math.floor(this.x - moveDistance), Math.floor(this.y))) {
           this.x -= moveDistance;
           
-          // Ensure player stays centered on the y-axis while moving horizontally
-          if (isCentered('y')) {
+          // Strong center snapping on Y axis while moving horizontally
+          if (Math.abs(this.y - Math.floor(this.y) - 0.5) < 0.1) {
             this.y = Math.floor(this.y) + 0.5;
+          }
+          // Gradual centering - slowly pull toward center while moving
+          else if (this.y > Math.floor(this.y) + 0.5) {
+            this.y = Math.max(this.y - 0.05, Math.floor(this.y) + 0.5);
+          } else if (this.y < Math.floor(this.y) + 0.5) {
+            this.y = Math.min(this.y + 0.05, Math.floor(this.y) + 0.5);
           }
           
           moved = true;
@@ -163,13 +178,20 @@ export class Player {
           this.direction = Direction.NONE;
         }
         break;
+        
       case Direction.RIGHT:
         if (canMoveFn(Math.floor(this.x + moveDistance), Math.floor(this.y))) {
           this.x += moveDistance;
           
-          // Ensure player stays centered on the y-axis while moving horizontally
-          if (isCentered('y')) {
+          // Strong center snapping on Y axis while moving horizontally
+          if (Math.abs(this.y - Math.floor(this.y) - 0.5) < 0.1) {
             this.y = Math.floor(this.y) + 0.5;
+          }
+          // Gradual centering - slowly pull toward center while moving
+          else if (this.y > Math.floor(this.y) + 0.5) {
+            this.y = Math.max(this.y - 0.05, Math.floor(this.y) + 0.5);
+          } else if (this.y < Math.floor(this.y) + 0.5) {
+            this.y = Math.min(this.y + 0.05, Math.floor(this.y) + 0.5);
           }
           
           moved = true;
@@ -188,21 +210,23 @@ export class Player {
       this.x = 0.5;
     }
 
+    // Handle all possible corner cases for turning
+    this.handleWallCornerTurns(nextDirection, canMoveFn);
+
     return moved;
   }
 
-  // Handle all possible corner turning cases
-  private handleAllCornerTurns(
+  // Helper method to handle all cases of wall corner turning
+  private handleWallCornerTurns(
     nextDirection: Direction, 
-    canMoveFn: (x: number, y: number) => boolean, 
-    isCentered: (axis: 'x' | 'y') => boolean
+    canMoveFn: (x: number, y: number) => boolean
   ): void {
-    // Check for current direction and wall ahead
-    const checkForWallAhead = (dir: Direction): boolean => {
-      const cellX = Math.floor(this.x);
-      const cellY = Math.floor(this.y);
-      
-      switch (dir) {
+    const cellX = Math.floor(this.x);
+    const cellY = Math.floor(this.y);
+    
+    // Check if there's a wall ahead in current direction
+    const hasWallAhead = (): boolean => {
+      switch (this.direction) {
         case Direction.UP:
           return !canMoveFn(cellX, cellY - 1);
         case Direction.DOWN:
@@ -216,11 +240,8 @@ export class Player {
       }
     };
     
-    // Check if we can turn in the requested direction
+    // Check if can move in requested next direction
     const canTurn = (dir: Direction): boolean => {
-      const cellX = Math.floor(this.x);
-      const cellY = Math.floor(this.y);
-      
       switch (dir) {
         case Direction.UP:
           return canMoveFn(cellX, cellY - 1);
@@ -235,33 +256,24 @@ export class Player {
       }
     };
     
-    // Handle horizontal to vertical turns
-    if ((this.direction === Direction.RIGHT || this.direction === Direction.LEFT) && 
-        (nextDirection === Direction.UP || nextDirection === Direction.DOWN)) {
-      // If we're about to hit a wall and we want to turn
-      if (checkForWallAhead(this.direction) && canTurn(nextDirection) && isCentered('x')) {
-        this.x = Math.floor(this.x) + 0.5;
-        this.direction = nextDirection;
-      }
-      // Normal case - we're aligned on the x-axis and want to turn
-      else if (canTurn(nextDirection) && isCentered('x')) {
-        this.x = Math.floor(this.x) + 0.5;
-        this.direction = nextDirection;
-      }
-    }
-    
-    // Handle vertical to horizontal turns
-    if ((this.direction === Direction.UP || this.direction === Direction.DOWN) && 
-        (nextDirection === Direction.LEFT || nextDirection === Direction.RIGHT)) {
-      // If we're about to hit a wall and we want to turn
-      if (checkForWallAhead(this.direction) && canTurn(nextDirection) && isCentered('y')) {
-        this.y = Math.floor(this.y) + 0.5;
-        this.direction = nextDirection;
-      }
-      // Normal case - we're aligned on the y-axis and want to turn
-      else if (canTurn(nextDirection) && isCentered('y')) {
-        this.y = Math.floor(this.y) + 0.5;
-        this.direction = nextDirection;
+    // Special case: at a wall corner and want to turn
+    if (hasWallAhead() && nextDirection !== Direction.NONE && nextDirection !== this.direction) {
+      // Try to turn if the next direction is valid
+      if (canTurn(nextDirection)) {
+        // When turning from horizontal to vertical movement
+        if ((this.direction === Direction.LEFT || this.direction === Direction.RIGHT) && 
+            (nextDirection === Direction.UP || nextDirection === Direction.DOWN)) {
+          // Snap to x-center of cell for better alignment
+          this.x = Math.floor(this.x) + 0.5;
+          this.direction = nextDirection;
+        }
+        // When turning from vertical to horizontal movement
+        else if ((this.direction === Direction.UP || this.direction === Direction.DOWN) && 
+                (nextDirection === Direction.LEFT || nextDirection === Direction.RIGHT)) {
+          // Snap to y-center of cell for better alignment
+          this.y = Math.floor(this.y) + 0.5;
+          this.direction = nextDirection;
+        }
       }
     }
   }
