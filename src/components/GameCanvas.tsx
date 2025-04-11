@@ -452,8 +452,7 @@ const GameCanvas: React.FC = () => {
       }
     });
     
-    // Draw Pac-Man using original full size
-    const pacmanSize = CELL_SIZE;
+    const pacmanSize = CELL_SIZE * 1.5;
     const drawX = player.current.x * CELL_SIZE - pacmanSize / 2;
     const drawY = player.current.y * CELL_SIZE - pacmanSize / 2;
     
