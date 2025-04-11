@@ -191,11 +191,16 @@ const GameCanvas: React.FC = () => {
   };
   
   const canMove = (x: number, y: number): boolean => {
-    // Check if we're out of bounds
-    if (x < 0 || x >= GRID_WIDTH || y < 0 || y >= GRID_HEIGHT) {
+    // Handle tunnel wrapping - this allows movement through the side tunnels
+    if (x < 0) return true;
+    if (x >= GRID_WIDTH) return true;
+    
+    // Check if we're out of bounds for vertical walls
+    if (y < 0 || y >= GRID_HEIGHT) {
       return false;
     }
     
+    // Check if there's a wall or ghost door in the way
     const cell = gameBoard.current[y][x];
     return cell !== CellType.WALL && cell !== CellType.GHOST_DOOR;
   };
@@ -269,13 +274,6 @@ const GameCanvas: React.FC = () => {
       lastDirection.current = player.current.direction;
       
       collectItem(Math.floor(player.current.x), Math.floor(player.current.y));
-      
-      // Handle tunnel wrapping
-      if (player.current.x < 0) {
-        player.current.x = GRID_WIDTH - 1;
-      } else if (player.current.x >= GRID_WIDTH) {
-        player.current.x = 0;
-      }
     }
     
     const currentTime = Date.now();
