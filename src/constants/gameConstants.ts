@@ -1,7 +1,7 @@
 
 // Player starting position
 export const PLAYER_START_X = 14; // Start in horizontal center
-export const PLAYER_START_Y = 22; // Moved down slightly from 22.5
+export const PLAYER_START_Y = 23.5; // Updated position to be in a valid corridor
 
 // Grid configuration
 export const GRID_WIDTH = 28;

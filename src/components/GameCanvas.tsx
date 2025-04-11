@@ -200,6 +200,7 @@ const GameCanvas: React.FC = () => {
     // Extra debug logs to help understand what's happening
     console.log(`Checking if can move to: (${x}, ${y})`);
     
+    // Handle warping for horizontal movement
     if (x < 0) return true;
     if (x >= GRID_WIDTH) return true;
     
@@ -215,6 +216,11 @@ const GameCanvas: React.FC = () => {
   };
   
   const collectItem = (x: number, y: number) => {
+    // Ensure x and y are within bounds
+    if (x < 0 || x >= GRID_WIDTH || y < 0 || y >= GRID_HEIGHT) {
+      return;
+    }
+    
     const cell = gameBoard.current[y][x];
     
     if (cell === CellType.DOT) {
@@ -270,6 +276,7 @@ const GameCanvas: React.FC = () => {
   const update = (deltaTime: number) => {
     if (gameState !== GameState.PLAYING) return;
     
+    // Update player position and movement
     const playerDidMove = player.current.update(
       deltaTime, 
       lastDirection.current, 
@@ -279,7 +286,11 @@ const GameCanvas: React.FC = () => {
     
     if (playerDidMove) {
       lastDirection.current = player.current.direction;
-      collectItem(Math.floor(player.current.x), Math.floor(player.current.y));
+      
+      // Collect items at the player's position (floored to get the grid cell)
+      const playerCellX = Math.floor(player.current.x);
+      const playerCellY = Math.floor(player.current.y);
+      collectItem(playerCellX, playerCellY);
     }
     
     const currentTime = Date.now();
@@ -468,10 +479,10 @@ const GameCanvas: React.FC = () => {
     const pacmanSize = CELL_SIZE * 1.5;
     
     // Fix Pac-Man's rendering position to be properly centered on his game coordinates
-    // IMPORTANT: This ensures consistent visual positioning
     const drawX = (player.current.x * CELL_SIZE) - (pacmanSize / 2) + (CELL_SIZE / 2);
     const drawY = (player.current.y * CELL_SIZE) - (pacmanSize / 2) + (CELL_SIZE / 2);
     
+    // Set mouth angles based on direction
     let startAngle = 0.2 * Math.PI;
     let endAngle = 1.8 * Math.PI;
     
@@ -494,12 +505,13 @@ const GameCanvas: React.FC = () => {
         break;
     }
     
-    // Make mouth animation more fluid
-    const mouthSpeed = 0.15; // Slightly faster animation
+    // Make mouth animation more fluid and ensure it always moves
+    const mouthSpeed = 0.2; // Faster animation
+    // Use Date.now() for continuous animation even when not moving
     const t = Math.sin(Date.now() * mouthSpeed) * 0.5 + 0.5; // Oscillate between 0 and 1
     
-    // Calculate mouth angles for more fluid animation
-    const mouthOpenAmount = 0.2 * Math.PI;
+    // Calculate mouth angles for more fluid animation - wider gap
+    const mouthOpenAmount = player.current.direction === Direction.NONE ? 0.05 * Math.PI : 0.3 * Math.PI;
     const finalStartAngle = startAngle + (mouthOpenAmount * t);
     const finalEndAngle = endAngle - (mouthOpenAmount * t);
     
@@ -516,17 +528,25 @@ const GameCanvas: React.FC = () => {
     ctx.lineTo(drawX + pacmanSize / 2, drawY + pacmanSize / 2);
     ctx.fill();
     
-    // Debug visualization - draw a dot at the exact player position
-    ctx.fillStyle = '#FF0000';
-    ctx.beginPath();
-    ctx.arc(
-      player.current.x * CELL_SIZE,
-      player.current.y * CELL_SIZE,
-      2, // Small 2px dot
-      0,
-      Math.PI * 2
-    );
-    ctx.fill();
+    // Debug visualization of grid center points - helpful for debugging
+    if (false) { // Set to true to enable debug grid
+      for (let y = 0; y < GRID_HEIGHT; y++) {
+        for (let x = 0; x < GRID_WIDTH; x++) {
+          if (gameBoard.current[y][x] !== CellType.WALL) {
+            ctx.fillStyle = 'rgba(255, 0, 0, 0.5)';
+            ctx.beginPath();
+            ctx.arc(
+              (x + 0.5) * CELL_SIZE,
+              (y + 0.5) * CELL_SIZE,
+              2,
+              0,
+              Math.PI * 2
+            );
+            ctx.fill();
+          }
+        }
+      }
+    }
     
     if (gameState === GameState.MENU) {
       drawMenu(ctx, canvas.width, canvas.height);

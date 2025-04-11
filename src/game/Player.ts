@@ -10,7 +10,7 @@ export class Player {
   targetY: number | null;
 
   constructor(x: number, y: number) {
-    // Ensure player starts perfectly centered in a cell, slightly lower
+    // Ensure player starts perfectly centered in a cell
     this.x = Math.floor(x) + 0.5;
     this.y = Math.floor(y) + 0.5;
     this.direction = Direction.NONE;
@@ -30,64 +30,87 @@ export class Player {
     
     // First, try to change direction if requested
     if (nextDirection !== Direction.NONE && nextDirection !== this.direction) {
-      const testX = Math.floor(this.x);
-      const testY = Math.floor(this.y);
+      // Calculate grid positions for collision checks
+      const currentGridX = Math.floor(this.x);
+      const currentGridY = Math.floor(this.y);
       
-      // Check the target position based on the requested direction
-      let nextX = testX;
-      let nextY = testY;
+      // Check if we're close enough to center to change direction
+      const closeToHorizontalCenter = Math.abs(this.y - (currentGridY + 0.5)) < 0.1;
+      const closeToVerticalCenter = Math.abs(this.x - (currentGridX + 0.5)) < 0.1;
       
-      switch (nextDirection) {
-        case Direction.UP:
-          nextY -= 1;
-          break;
-        case Direction.DOWN:
-          nextY += 1;
-          break;
-        case Direction.LEFT:
-          nextX -= 1;
-          break;
-        case Direction.RIGHT:
-          nextX += 1;
-          break;
+      let canChangeDirection = false;
+      
+      if ((nextDirection === Direction.UP || nextDirection === Direction.DOWN) && closeToVerticalCenter) {
+        // For vertical movement, we need to be horizontally centered
+        canChangeDirection = true;
+      } else if ((nextDirection === Direction.LEFT || nextDirection === Direction.RIGHT) && closeToHorizontalCenter) {
+        // For horizontal movement, we need to be vertically centered
+        canChangeDirection = true;
       }
       
-      // If we can move in the requested direction, change direction
-      if (canMoveFunction(nextX, nextY)) {
-        this.direction = nextDirection;
+      if (canChangeDirection) {
+        // Check the target position based on the requested direction
+        let nextX = currentGridX;
+        let nextY = currentGridY;
         
-        // Align to grid for smoother turning
-        if (nextDirection === Direction.UP || nextDirection === Direction.DOWN) {
-          this.x = Math.floor(this.x) + 0.5;
-        } else if (nextDirection === Direction.LEFT || nextDirection === Direction.RIGHT) {
-          this.y = Math.floor(this.y) + 0.5;
+        switch (nextDirection) {
+          case Direction.UP:
+            nextY -= 1;
+            break;
+          case Direction.DOWN:
+            nextY += 1;
+            break;
+          case Direction.LEFT:
+            nextX -= 1;
+            break;
+          case Direction.RIGHT:
+            nextX += 1;
+            break;
+        }
+        
+        // If we can move in the requested direction, change direction
+        if (canMoveFunction(nextX, nextY)) {
+          this.direction = nextDirection;
+          
+          // Align to grid for smoother turning
+          if (nextDirection === Direction.UP || nextDirection === Direction.DOWN) {
+            this.x = currentGridX + 0.5;
+          } else if (nextDirection === Direction.LEFT || nextDirection === Direction.RIGHT) {
+            this.y = currentGridY + 0.5;
+          }
+          
+          console.log(`Direction changed to: ${Direction[nextDirection]}`);
         }
       }
     }
     
     // Check if we can move in the current direction
     if (this.direction !== Direction.NONE) {
-      let nextX = Math.floor(this.x);
-      let nextY = Math.floor(this.y);
+      const currentGridX = Math.floor(this.x);
+      const currentGridY = Math.floor(this.y);
       
+      let nextX = currentGridX;
+      let nextY = currentGridY;
+      
+      // Calculate the next grid cell based on direction
       switch (this.direction) {
         case Direction.UP:
-          if (this.y - this.speed * deltaTime < Math.floor(this.y)) {
+          if (this.y - this.speed * deltaTime < currentGridY) {
             nextY -= 1;
           }
           break;
         case Direction.DOWN:
-          if (this.y + this.speed * deltaTime >= Math.floor(this.y) + 1) {
+          if (this.y + this.speed * deltaTime >= currentGridY + 1) {
             nextY += 1;
           }
           break;
         case Direction.LEFT:
-          if (this.x - this.speed * deltaTime < Math.floor(this.x)) {
+          if (this.x - this.speed * deltaTime < currentGridX) {
             nextX -= 1;
           }
           break;
         case Direction.RIGHT:
-          if (this.x + this.speed * deltaTime >= Math.floor(this.x) + 1) {
+          if (this.x + this.speed * deltaTime >= currentGridX + 1) {
             nextX += 1;
           }
           break;
@@ -117,7 +140,21 @@ export class Player {
         // Check if we've moved
         moved = prevX !== this.x || prevY !== this.y;
       } else {
-        // We hit a wall, stop moving in this direction
+        // We hit a wall, stop by perfectly aligning to the grid
+        switch (this.direction) {
+          case Direction.UP:
+            this.y = currentGridY + 0.5;
+            break;
+          case Direction.DOWN:
+            this.y = currentGridY + 0.5;
+            break;
+          case Direction.LEFT:
+            this.x = currentGridX + 0.5;
+            break;
+          case Direction.RIGHT:
+            this.x = currentGridX + 0.5;
+            break;
+        }
         this.direction = Direction.NONE;
       }
     }
@@ -141,6 +178,10 @@ export class Player {
       // Apply a small correction to align with the center of the corridor
       if (Math.abs(this.y - targetY) < 0.1) {
         this.y = targetY;
+      } else if (this.y < targetY) {
+        this.y += 0.01; // Gently nudge up
+      } else if (this.y > targetY) {
+        this.y -= 0.01; // Gently nudge down
       }
     }
     
@@ -150,6 +191,10 @@ export class Player {
       // Apply a small correction to align with the center of the corridor
       if (Math.abs(this.x - targetX) < 0.1) {
         this.x = targetX;
+      } else if (this.x < targetX) {
+        this.x += 0.01; // Gently nudge right
+      } else if (this.x > targetX) {
+        this.x -= 0.01; // Gently nudge left
       }
     }
   }
