@@ -1,4 +1,3 @@
-
 // Player starting position
 export const PLAYER_START_X = 14; // Start in horizontal center
 export const PLAYER_START_Y = 23.5; // Updated position to be in a valid corridor
@@ -9,7 +8,7 @@ export const GRID_HEIGHT = 31;
 export const CELL_SIZE = 16;
 
 // Game mechanics
-export const PLAYER_SPEED = 5;
+export const PLAYER_SPEED = 6; // Increased from 5 to 6 for slightly faster movement
 export const GHOST_SPEED = 4;
 export const GHOST_FRIGHTENED_SPEED = 2;
 export const GHOST_TUNNEL_SPEED = 2;
