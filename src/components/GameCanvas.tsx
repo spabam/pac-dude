@@ -138,9 +138,10 @@ const GameCanvas: React.FC = () => {
       new Ghost(GhostType.CLYDE, 16, 14)    // Clyde - orange ghost starts right
     ];
     
-    // Set all ghosts ready to leave and set initial states
+    // Set all ghosts ready to leave and set initial states but with staggered timing
     ghosts.current.forEach((ghost, index) => {
-      ghost.readyToLeave = true;
+      // Only Blinky is immediately ready to leave
+      ghost.readyToLeave = index === 0;
       
       // Ensure ghosts have the right state - should be CHASE by default
       ghost.setState(GhostState.CHASE);
@@ -151,7 +152,7 @@ const GameCanvas: React.FC = () => {
         setTimeout(() => {
           ghost.readyToLeave = true;
           console.log(`Ghost ${ghost.type} is now ready to leave`);
-        }, 3000 * index); // Stagger by 3 seconds per ghost
+        }, 2000 * index); // Stagger by 2 seconds per ghost
       }
     });
     
@@ -195,7 +196,7 @@ const GameCanvas: React.FC = () => {
         setTimeout(() => {
           ghost.readyToLeave = true;
           console.log(`Ghost ${ghost.type} is now ready to leave after level reset`);
-        }, 3000 * index); // Stagger by 3 seconds per ghost
+        }, 2000 * index); // Stagger by 2 seconds per ghost
       }
     });
     

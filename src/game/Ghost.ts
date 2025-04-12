@@ -114,7 +114,7 @@ export class Ghost {
     }
     
     // Check if ghost is in tunnel (outer edges of the map)
-    if ((this.y === 14) && (this.x < 5 || this.x > 22)) {
+    if ((Math.floor(this.y) === 14) && (this.x < 5 || this.x > 22)) {
       moveSpeed = GHOST_TUNNEL_SPEED;
     }
     
@@ -139,8 +139,9 @@ export class Ghost {
       console.log(`Ghost ${this.type} in ghost house at (${this.x}, ${this.y}), ready to leave, direction: ${this.direction}`);
       
       // Stage 1: Move to the center of the ghost house at (14, 14)
-      if (Math.floor(this.y) >= 14 && Math.abs(Math.floor(this.x) - 14) > 0) {
-        const centerDirection = this.getDirectionToTarget(
+      if (Math.abs(this.x - 14.5) > 0.3 || Math.abs(this.y - 14.5) > 0.3) {
+        // Not at center yet, move toward center position
+        this.direction = this.getDirectionToTarget(
           Math.floor(this.x),
           Math.floor(this.y),
           14,
@@ -149,48 +150,72 @@ export class Ghost {
           true // Can pass through ghost house door
         );
         
-        console.log(`Ghost ${this.type} moving to center with direction: ${centerDirection}`);
-        this.direction = centerDirection;
-      }
-      // Stage 2: From center, move up to the door at (14, 13)
-      else if (Math.floor(this.y) >= 14 || (Math.floor(this.y) === 13 && Math.floor(this.x) !== 14)) {
-        // Move towards the ghost door at (14, 13)
-        console.log(`Ghost ${this.type} going to door from (${this.x}, ${this.y})`);
+        console.log(`Ghost ${this.type} moving to center with direction: ${this.direction}`);
         
-        // If ghost is at (14, 14), force UP direction
-        if (Math.abs(this.x - 14.5) < 0.1 && Math.abs(this.y - 14.5) < 0.1) {
-          this.direction = Direction.UP;
-        } else {
-          // Otherwise use pathfinding to get to the door
-          const doorDirection = this.getDirectionToTarget(
-            Math.floor(this.x),
-            Math.floor(this.y),
-            14,
-            13,
-            grid,
-            true // Can pass through ghost house door
-          );
-          
-          console.log(`Ghost ${this.type} moving towards door with direction: ${doorDirection}`);
-          this.direction = doorDirection;
+        // Move toward center with explicit coordinate handling
+        switch (this.direction) {
+          case Direction.UP:
+            this.y -= moveDistance;
+            break;
+          case Direction.DOWN:
+            this.y += moveDistance;
+            break;
+          case Direction.LEFT:
+            this.x -= moveDistance;
+            break;
+          case Direction.RIGHT:
+            this.x += moveDistance;
+            break;
         }
-      } 
-      // Stage 3: When at the door position, force move up through doorway
-      else if (Math.abs(this.x - 14.5) < 0.1 && Math.abs(this.y - 13.5) < 0.2) {
+        
+        // Skip the rest of the update logic since we're handling direct movement here
+        return;
+      }
+      
+      // Stage 2: From center, move up to the door at (14, 13)
+      else if (Math.abs(this.x - 14.5) <= 0.3 && Math.abs(this.y - 14.5) <= 0.3) {
+        // At center position, now move up to the door
+        console.log(`Ghost ${this.type} at center (${this.x}, ${this.y}), moving up to door`);
+        
+        // Force position to exact center first
+        this.x = 14.5;
+        this.y = 14.5;
+        
+        // Then force movement upward
+        this.direction = Direction.UP;
+        this.y -= moveDistance * 1.2; // Give a little extra push
+        
+        // Skip the rest of the update logic
+        return;
+      }
+      
+      // Stage 3: At door position, force move up and through doorway
+      else if (Math.abs(this.x - 14.5) <= 0.2 && Math.abs(this.y - 13.5) <= 0.2) {
         // At the door, force move up to exit
         console.log(`Ghost ${this.type} at door (${this.x}, ${this.y}), forcing UP direction`);
         this.direction = Direction.UP;
         
-        // Ensure we move enough to pass the doorway
+        // Ensure we move enough to pass the doorway completely
         this.y -= moveDistance * 1.5; // Apply extra push upward
         
-        // If we're at the transition point, give an extra push
-        if (Math.abs(this.y - 12.5) < 0.2) {
+        // If close to passing the doorway, give an extra push
+        if (this.y <= 13.0 && this.y > 12.5) {
           console.log(`Ghost ${this.type} getting extra push through doorway`);
-          this.y = 12.3; // Force it past the doorway
+          this.y = 12.4; // Force it past the doorway
         }
         
-        return; // Skip normal movement logic for this frame
+        // Once fully out, ensure we're in the corridor
+        if (this.y <= 12.5) {
+          console.log(`Ghost ${this.type} has exited the ghost house`);
+          // Set position to be in corridor
+          this.x = 14.5;
+          this.y = 11.5;
+          // No longer ready to leave since we've left already
+          this.readyToLeave = false;
+          return;
+        }
+        
+        return; // Skip normal movement logic
       }
     }
     else if (isAtIntersection || shouldChangeRandomDirection) {
