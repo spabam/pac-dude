@@ -1,4 +1,3 @@
-
 import { 
   Direction, 
   GhostType, 
@@ -7,7 +6,8 @@ import {
   GHOST_SPEED,
   GHOST_FRIGHTENED_SPEED,
   GHOST_TUNNEL_SPEED,
-  GHOST_RANDOM_DIRECTION_CHANGE
+  GHOST_RANDOM_DIRECTION_CHANGE,
+  GHOST_HOUSE_TIME
 } from '../constants/gameConstants';
 
 interface Position {
@@ -30,6 +30,7 @@ export class Ghost {
   homeY: number;
   lastRandomDirectionChange: number;
   readyToLeave: boolean;
+  respawnTimer: number | null;
 
   constructor(type: GhostType, x: number, y: number) {
     this.type = type;
@@ -47,6 +48,7 @@ export class Ghost {
     this.homeY = y;
     this.lastRandomDirectionChange = 0;
     this.readyToLeave = true; // Start ghosts ready to leave
+    this.respawnTimer = null;
     
     // Set scatter targets based on ghost type (corners of the map)
     switch (type) {
@@ -88,6 +90,16 @@ export class Ghost {
     powerMode: boolean,
     currentTime: number = Date.now()
   ) {
+    // Check if ghost is respawning from being eaten
+    if (this.state === GhostState.EATEN && this.respawnTimer !== null) {
+      if (currentTime >= this.respawnTimer) {
+        // Ghost has waited long enough, allow it to leave the house
+        this.respawnTimer = null;
+        this.state = powerMode ? GhostState.FRIGHTENED : GhostState.CHASE;
+        this.readyToLeave = true;
+      }
+    }
+    
     // Update ghost target based on state and type
     this.updateTarget(playerPos);
     
@@ -127,9 +139,10 @@ export class Ghost {
       // Eaten ghosts should return to the ghost house
       if (this.state === GhostState.EATEN) {
         if (Math.abs(this.x - this.homeX) < 0.5 && Math.abs(this.y - this.homeY) < 0.5) {
-          // Ghost has reached home, restore normal state
-          this.setState(powerMode ? GhostState.FRIGHTENED : 
-                        GhostState.CHASE);
+          // Ghost has reached home, start respawn timer
+          if (this.respawnTimer === null) {
+            this.respawnTimer = currentTime + GHOST_HOUSE_TIME;
+          }
           this.x = this.homeX;
           this.y = this.homeY;
         } else {
@@ -534,6 +547,11 @@ export class Ghost {
   // Set ghost state
   setState(state: GhostState) {
     this.state = state;
+    
+    // If ghost was eaten, reset respawn timer
+    if (state === GhostState.EATEN) {
+      this.respawnTimer = null;
+    }
     
     // Update speed based on state
     switch (state) {

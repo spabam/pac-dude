@@ -24,9 +24,10 @@ export const GHOST_COMBO_MULTIPLIER = 2;
 // Timers
 export const POWER_PELLET_DURATION = 8000; // 8 seconds
 export const GHOST_FLASH_DURATION = 2000; // 2 seconds before power mode ends
+export const GHOST_HOUSE_TIME = 5000; // 5 seconds in ghost house before respawning
 
 // Enums
-export enum Direction {
+export const enum Direction {
   NONE = 0,
   UP = 1,
   DOWN = 2,
@@ -34,7 +35,7 @@ export enum Direction {
   RIGHT = 4
 }
 
-export enum GameState {
+export const enum GameState {
   MENU = 0,
   PLAYING = 1,
   PAUSE = 2,
@@ -42,7 +43,7 @@ export enum GameState {
   WIN = 4
 }
 
-export enum CellType {
+export const enum CellType {
   EMPTY = 0,
   WALL = 1,
   DOT = 2,
@@ -50,14 +51,14 @@ export enum CellType {
   GHOST_DOOR = 4
 }
 
-export enum GhostType {
+export const enum GhostType {
   BLINKY = 0, // Red - chases player directly
   PINKY = 1,  // Pink - tries to ambush player
   INKY = 2,   // Cyan - unpredictable
   CLYDE = 3   // Orange - random movement
 }
 
-export enum GhostState {
+export const enum GhostState {
   CHASE = 0,      // Normal chase mode
   SCATTER = 1,    // Return to corners
   FRIGHTENED = 2, // Blue and vulnerable

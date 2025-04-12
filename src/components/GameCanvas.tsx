@@ -15,7 +15,8 @@ import {
   POWER_PELLET_DURATION,
   GHOST_FLASH_DURATION,
   PLAYER_START_X,
-  PLAYER_START_Y
+  PLAYER_START_Y,
+  GHOST_HOUSE_TIME
 } from '../constants/gameConstants';
 import { mazeLayout, TOTAL_DOTS } from '../data/mazeLayout';
 import { useGameLoop } from '../hooks/useGameLoop';
@@ -36,10 +37,10 @@ const GameCanvas: React.FC = () => {
   
   const player = useRef(new Player(PLAYER_START_X, PLAYER_START_Y));
   const ghosts = useRef([
-    new Ghost(GhostType.BLINKY, 14, 11),  // All ghosts will move randomly
-    new Ghost(GhostType.PINKY, 14, 14),   
-    new Ghost(GhostType.INKY, 12, 14),    
-    new Ghost(GhostType.CLYDE, 16, 14)    
+    new Ghost(GhostType.BLINKY, 14, 11),  // Blinky - red ghost
+    new Ghost(GhostType.PINKY, 14, 14),   // Pinky - pink ghost
+    new Ghost(GhostType.INKY, 12, 14),    // Inky - cyan ghost
+    new Ghost(GhostType.CLYDE, 16, 14)    // Clyde - orange ghost
   ]);
   
   const gameBoard = useRef<number[][]>(JSON.parse(JSON.stringify(mazeLayout)));
@@ -129,11 +130,16 @@ const GameCanvas: React.FC = () => {
     // Initialize player at exact center position with explicit updated Y
     player.current = new Player(PLAYER_START_X, PLAYER_START_Y);
     ghosts.current = [
-      new Ghost(GhostType.BLINKY, 14, 11),  // All ghosts will move randomly
-      new Ghost(GhostType.PINKY, 14, 14),   
-      new Ghost(GhostType.INKY, 12, 14),    
-      new Ghost(GhostType.CLYDE, 16, 14)    
+      new Ghost(GhostType.BLINKY, 14, 11),  // Blinky - red ghost
+      new Ghost(GhostType.PINKY, 14, 14),   // Pinky - pink ghost
+      new Ghost(GhostType.INKY, 12, 14),    // Inky - cyan ghost
+      new Ghost(GhostType.CLYDE, 16, 14)    // Clyde - orange ghost
     ];
+    
+    // Give each ghost a staggered exit time to prevent bunching
+    ghosts.current.forEach((ghost, index) => {
+      ghost.readyToLeave = true;
+    });
     
     gameBoard.current = JSON.parse(JSON.stringify(mazeLayout));
     powerMode.current = false;
@@ -158,11 +164,16 @@ const GameCanvas: React.FC = () => {
   const resetLevel = () => {
     player.current = new Player(PLAYER_START_X, PLAYER_START_Y);
     ghosts.current = [
-      new Ghost(GhostType.BLINKY, 14, 11),  // All ghosts will move randomly
-      new Ghost(GhostType.PINKY, 14, 14),   
-      new Ghost(GhostType.INKY, 12, 14),    
-      new Ghost(GhostType.CLYDE, 16, 14)    
+      new Ghost(GhostType.BLINKY, 14, 11),  // Blinky - red ghost
+      new Ghost(GhostType.PINKY, 14, 14),   // Pinky - pink ghost
+      new Ghost(GhostType.INKY, 12, 14),    // Inky - cyan ghost
+      new Ghost(GhostType.CLYDE, 16, 14)    // Clyde - orange ghost
     ];
+    
+    // Give each ghost a staggered exit time to prevent bunching
+    ghosts.current.forEach((ghost, index) => {
+      ghost.readyToLeave = true;
+    });
     
     lastDirection.current = Direction.NONE;
     nextDirection.current = Direction.NONE;
@@ -260,6 +271,8 @@ const GameCanvas: React.FC = () => {
           const points = GHOST_POINTS * ghostCombo.current;
           setScore(prevScore => prevScore + points);
           ghostCombo.current *= GHOST_COMBO_MULTIPLIER;
+          
+          // Play eating ghost sound (if we had one)
         } else if (ghost.state !== GhostState.EATEN) {
           setLives(prevLives => prevLives - 1);
           
@@ -268,6 +281,8 @@ const GameCanvas: React.FC = () => {
           } else {
             resetLevel();
           }
+          
+          // Play death sound (if we had one)
         }
       }
     });
