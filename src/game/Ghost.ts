@@ -325,7 +325,7 @@ export class Ghost {
         
       case 2: // Step 3: Move up to exit ghost house
         this.direction = Direction.UP;
-        this.y -= moveDistance * 3.5; // Increased boost speed even more to ensure movement
+        this.y -= moveDistance * 4.0; // Increased boost speed even more to ensure movement
         
         // When we reach position y=11, we're out of the ghost house
         if (this.y <= 11.5) {
@@ -335,9 +335,14 @@ export class Ghost {
           this.readyToLeave = false; // No longer needs special handling
           
           // Make sure the ghost immediately starts moving in a valid direction
-          this.direction = this.chooseNextDirection(grid);
-          
-          console.log(`Ghost ${this.type} has successfully exited ghost house at (${this.x}, ${this.y})`);
+          // For lower levels, use random movement
+          if (grid) {
+            if (this.state === GhostState.RANDOM) {
+              this.direction = this.chooseRandomDirection(grid);
+            } else {
+              this.direction = this.chooseNextDirection(grid);
+            }
+          }
         }
         break;
     }
