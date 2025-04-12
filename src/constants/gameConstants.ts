@@ -24,7 +24,7 @@ export const GHOST_COMBO_MULTIPLIER = 2;
 // Timers
 export const POWER_PELLET_DURATION = 8000; // 8 seconds
 export const GHOST_FLASH_DURATION = 2000; // 2 seconds before power mode ends
-export const GHOST_HOUSE_TIME = 5000; // 5 seconds in ghost house before respawning
+export const GHOST_HOUSE_TIME = 3000; // Reduced from 5000 to 3000 ms for quicker ghost release
 
 // Enums
 export const enum Direction {

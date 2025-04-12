@@ -129,16 +129,30 @@ const GameCanvas: React.FC = () => {
   const resetGame = () => {
     // Initialize player at exact center position with explicit updated Y
     player.current = new Player(PLAYER_START_X, PLAYER_START_Y);
+    
+    // Initialize ghosts with proper positions and ensure they're ready to leave
     ghosts.current = [
-      new Ghost(GhostType.BLINKY, 14, 11),  // Blinky - red ghost
-      new Ghost(GhostType.PINKY, 14, 14),   // Pinky - pink ghost
-      new Ghost(GhostType.INKY, 12, 14),    // Inky - cyan ghost
-      new Ghost(GhostType.CLYDE, 16, 14)    // Clyde - orange ghost
+      new Ghost(GhostType.BLINKY, 14, 11),  // Blinky - red ghost starts at top
+      new Ghost(GhostType.PINKY, 14, 14),   // Pinky - pink ghost starts in center
+      new Ghost(GhostType.INKY, 12, 14),    // Inky - cyan ghost starts left
+      new Ghost(GhostType.CLYDE, 16, 14)    // Clyde - orange ghost starts right
     ];
     
-    // Give each ghost a staggered exit time to prevent bunching
+    // Set all ghosts ready to leave and set initial states
     ghosts.current.forEach((ghost, index) => {
       ghost.readyToLeave = true;
+      
+      // Ensure ghosts have the right state - should be CHASE by default
+      ghost.setState(GhostState.CHASE);
+      
+      // Stagger ghost exit times to prevent bunching (except Blinky who should exit immediately)
+      if (index > 0) {
+        // Use a timeout to allow other ghosts to leave only after a delay
+        setTimeout(() => {
+          ghost.readyToLeave = true;
+          console.log(`Ghost ${ghost.type} is now ready to leave`);
+        }, 3000 * index); // Stagger by 3 seconds per ghost
+      }
     });
     
     gameBoard.current = JSON.parse(JSON.stringify(mazeLayout));
@@ -163,16 +177,26 @@ const GameCanvas: React.FC = () => {
   
   const resetLevel = () => {
     player.current = new Player(PLAYER_START_X, PLAYER_START_Y);
+    
+    // Reset ghosts with the same positioning as game start
     ghosts.current = [
-      new Ghost(GhostType.BLINKY, 14, 11),  // Blinky - red ghost
-      new Ghost(GhostType.PINKY, 14, 14),   // Pinky - pink ghost
-      new Ghost(GhostType.INKY, 12, 14),    // Inky - cyan ghost
-      new Ghost(GhostType.CLYDE, 16, 14)    // Clyde - orange ghost
+      new Ghost(GhostType.BLINKY, 14, 11),
+      new Ghost(GhostType.PINKY, 14, 14),
+      new Ghost(GhostType.INKY, 12, 14),
+      new Ghost(GhostType.CLYDE, 16, 14)
     ];
     
-    // Give each ghost a staggered exit time to prevent bunching
+    // Make sure ghosts are ready to leave the house, staggered
     ghosts.current.forEach((ghost, index) => {
-      ghost.readyToLeave = true;
+      ghost.readyToLeave = index === 0; // Only Blinky is ready to leave initially
+      
+      if (index > 0) {
+        // Use a timeout to allow other ghosts to leave only after a delay
+        setTimeout(() => {
+          ghost.readyToLeave = true;
+          console.log(`Ghost ${ghost.type} is now ready to leave after level reset`);
+        }, 3000 * index); // Stagger by 3 seconds per ghost
+      }
     });
     
     lastDirection.current = Direction.NONE;
