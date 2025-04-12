@@ -1,3 +1,4 @@
+
 import { 
   Direction, 
   GhostType, 
@@ -28,6 +29,7 @@ export class Ghost {
   homeX: number;
   homeY: number;
   lastRandomDirectionChange: number;
+  readyToLeave: boolean;
 
   constructor(type: GhostType, x: number, y: number) {
     this.type = type;
@@ -35,8 +37,8 @@ export class Ghost {
     this.y = Math.floor(y) + 0.5;
     this.direction = this.getInitialDirection(type);
     
-    // Set all ghosts to RANDOM state initially
-    this.state = GhostState.RANDOM;
+    // Set all ghosts to CHASE state initially for better movement
+    this.state = GhostState.CHASE;
     
     this.speed = GHOST_SPEED;
     this.targetX = 0;
@@ -44,6 +46,7 @@ export class Ghost {
     this.homeX = x;
     this.homeY = y;
     this.lastRandomDirectionChange = 0;
+    this.readyToLeave = true; // Start ghosts ready to leave
     
     // Set scatter targets based on ghost type (corners of the map)
     switch (type) {
@@ -126,7 +129,7 @@ export class Ghost {
         if (Math.abs(this.x - this.homeX) < 0.5 && Math.abs(this.y - this.homeY) < 0.5) {
           // Ghost has reached home, restore normal state
           this.setState(powerMode ? GhostState.FRIGHTENED : 
-                        GhostState.RANDOM);
+                        GhostState.CHASE);
           this.x = this.homeX;
           this.y = this.homeY;
         } else {
@@ -179,7 +182,7 @@ export class Ghost {
     }
     
     // Check if the next cell is valid (ghosts can pass ghost doors when eaten)
-    const canPassGhostDoor = this.state === GhostState.EATEN;
+    const canPassGhostDoor = this.state === GhostState.EATEN || this.readyToLeave;
     if (this.isValidMove(nextX, nextY, grid, canPassGhostDoor)) {
       // Move ghost based on current direction
       switch (this.direction) {
@@ -195,6 +198,12 @@ export class Ghost {
         case Direction.RIGHT:
           this.x += moveDistance;
           break;
+      }
+      
+      // Once ghost moves out of ghost house area, it can't pass ghost doors anymore
+      // unless it's in EATEN state
+      if (grid[Math.floor(this.y)][Math.floor(this.x)] !== CellType.GHOST_DOOR) {
+        this.readyToLeave = false;
       }
     } else if (isAtIntersection) {
       // We hit a wall at an intersection, choose a new direction
@@ -222,19 +231,19 @@ export class Ghost {
     const oppositeDirection = this.getOppositeDirection(this.direction);
     const availableDirections: Direction[] = [];
     
-    if (this.isValidMove(x, y - 1, grid, false) && this.direction !== Direction.DOWN) {
+    if (this.isValidMove(x, y - 1, grid, this.readyToLeave) && this.direction !== Direction.DOWN) {
       availableDirections.push(Direction.UP);
     }
     
-    if (this.isValidMove(x, y + 1, grid, false) && this.direction !== Direction.UP) {
+    if (this.isValidMove(x, y + 1, grid, this.readyToLeave) && this.direction !== Direction.UP) {
       availableDirections.push(Direction.DOWN);
     }
     
-    if (this.isValidMove(x - 1, y, grid, false) && this.direction !== Direction.RIGHT) {
+    if (this.isValidMove(x - 1, y, grid, this.readyToLeave) && this.direction !== Direction.RIGHT) {
       availableDirections.push(Direction.LEFT);
     }
     
-    if (this.isValidMove(x + 1, y, grid, false) && this.direction !== Direction.LEFT) {
+    if (this.isValidMove(x + 1, y, grid, this.readyToLeave) && this.direction !== Direction.LEFT) {
       availableDirections.push(Direction.RIGHT);
     }
     
@@ -258,25 +267,25 @@ export class Ghost {
     // Get available directions
     const availableDirections: Direction[] = [];
     
-    if (this.isValidMove(x, y - 1, grid, this.state === GhostState.EATEN)) {
+    if (this.isValidMove(x, y - 1, grid, this.state === GhostState.EATEN || this.readyToLeave)) {
       if (this.direction !== Direction.DOWN) {
         availableDirections.push(Direction.UP);
       }
     }
     
-    if (this.isValidMove(x, y + 1, grid, this.state === GhostState.EATEN)) {
+    if (this.isValidMove(x, y + 1, grid, this.state === GhostState.EATEN || this.readyToLeave)) {
       if (this.direction !== Direction.UP) {
         availableDirections.push(Direction.DOWN);
       }
     }
     
-    if (this.isValidMove(x - 1, y, grid, this.state === GhostState.EATEN)) {
+    if (this.isValidMove(x - 1, y, grid, this.state === GhostState.EATEN || this.readyToLeave)) {
       if (this.direction !== Direction.RIGHT) {
         availableDirections.push(Direction.LEFT);
       }
     }
     
-    if (this.isValidMove(x + 1, y, grid, this.state === GhostState.EATEN)) {
+    if (this.isValidMove(x + 1, y, grid, this.state === GhostState.EATEN || this.readyToLeave)) {
       if (this.direction !== Direction.LEFT) {
         availableDirections.push(Direction.RIGHT);
       }
@@ -299,7 +308,7 @@ export class Ghost {
       this.targetX, 
       this.targetY, 
       grid,
-      this.state === GhostState.EATEN
+      this.state === GhostState.EATEN || this.readyToLeave
     );
   }
   
@@ -312,7 +321,7 @@ export class Ghost {
     
     const cell = grid[y][x];
     
-    // Ghost can pass through ghost door only if returning home
+    // Ghost can pass through ghost door only if returning home or initially leaving
     if (cell === CellType.GHOST_DOOR && !canPassGhostDoor) {
       return false;
     }
