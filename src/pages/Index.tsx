@@ -7,7 +7,7 @@ const Index = () => {
       <header className="text-center mb-4">
         <h1 className="text-4xl font-pixel text-yellow-400 mb-2">PAC-DUDE</h1>
         <p className="text-lg text-blue-400 font-pixel">A classic arcade game with a yellow dude</p>
-        <p className="text-xs text-muted-foreground mt-1">v1.0.5 - Fixed Ghost Movement</p>
+        <p className="text-xs text-muted-foreground mt-1">v1.0.6 - Fixed Mobile Controls</p>
       </header>
       <main className="w-full flex justify-center">
         <GameCanvas />

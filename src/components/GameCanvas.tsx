@@ -127,37 +127,33 @@ const GameCanvas: React.FC = () => {
   };
   
   const resetGame = () => {
-    // Initialize player at exact center position with explicit updated Y
     player.current = new Player(PLAYER_START_X, PLAYER_START_Y);
     
-    // Initialize ghosts at specific positions with staggered exit timing
     ghosts.current = [
-      new Ghost(GhostType.BLINKY, 14, 11),  // Blinky - red ghost starts at top
-      new Ghost(GhostType.PINKY, 14, 14),   // Pinky - pink ghost starts in center
-      new Ghost(GhostType.INKY, 12, 14),    // Inky - cyan ghost starts left
-      new Ghost(GhostType.CLYDE, 16, 14)    // Clyde - orange ghost starts right
+      new Ghost(GhostType.BLINKY, 14, 11),
+      new Ghost(GhostType.PINKY, 14, 14),
+      new Ghost(GhostType.INKY, 12, 14),
+      new Ghost(GhostType.CLYDE, 16, 14)
     ];
     
-    // Set different states for the ghosts to stagger their exits
     ghosts.current.forEach((ghost, index) => {
       ghost.readyToLeave = true;
       
-      // Stagger ghost exits by giving them different states initially
       switch (index) {
-        case 0: // Blinky - Already outside, shouldn't go through exit routine
+        case 0:
           ghost.setState(GhostState.CHASE);
           ghost.isLeavingGhostHouse = false;
           break;
-        case 1: // Pinky - First to leave
+        case 1:
           ghost.setState(GhostState.CHASE);
           ghost.isLeavingGhostHouse = true;
           break;
-        case 2: // Inky - Second to leave
+        case 2:
           ghost.setState(GhostState.CHASE);
           ghost.isLeavingGhostHouse = true;
           ghost.nextLeaveStep = 0;
           break;
-        case 3: // Clyde - Last to leave
+        case 3:
           ghost.setState(GhostState.CHASE);
           ghost.isLeavingGhostHouse = true;
           ghost.nextLeaveStep = 0;
@@ -181,7 +177,6 @@ const GameCanvas: React.FC = () => {
     setDotsEaten(0);
     setGameState(GameState.PLAYING);
     
-    // Debug logs to verify player position
     console.log("Player reset position:", player.current.x, player.current.y);
     console.log("Ghosts reset: ", ghosts.current.map(g => `Ghost ${g.type} at (${g.x}, ${g.y})`));
   };
@@ -189,7 +184,6 @@ const GameCanvas: React.FC = () => {
   const resetLevel = () => {
     player.current = new Player(PLAYER_START_X, PLAYER_START_Y);
     
-    // Reset ghosts with staggered timing
     ghosts.current = [
       new Ghost(GhostType.BLINKY, 14, 11),
       new Ghost(GhostType.PINKY, 14, 14),
@@ -197,26 +191,24 @@ const GameCanvas: React.FC = () => {
       new Ghost(GhostType.CLYDE, 16, 14)
     ];
     
-    // Set different states for the ghosts to stagger their exits
     ghosts.current.forEach((ghost, index) => {
       ghost.readyToLeave = true;
       
-      // Stagger ghost exits by giving them different states initially
       switch (index) {
-        case 0: // Blinky - Already outside, shouldn't go through exit routine
+        case 0:
           ghost.setState(GhostState.CHASE);
           ghost.isLeavingGhostHouse = false;
           break;
-        case 1: // Pinky - First to leave
+        case 1:
           ghost.setState(GhostState.CHASE);
           ghost.isLeavingGhostHouse = true;
           break;
-        case 2: // Inky - Second to leave
+        case 2:
           ghost.setState(GhostState.CHASE);
           ghost.isLeavingGhostHouse = true;
           ghost.nextLeaveStep = 0;
           break;
-        case 3: // Clyde - Last to leave
+        case 3:
           ghost.setState(GhostState.CHASE);
           ghost.isLeavingGhostHouse = true;
           ghost.nextLeaveStep = 0;
@@ -227,7 +219,6 @@ const GameCanvas: React.FC = () => {
     lastDirection.current = Direction.NONE;
     nextDirection.current = Direction.NONE;
     
-    // Debug logs to verify player position
     console.log("Level reset position:", player.current.x, player.current.y);
     console.log("Ghosts reset: ", ghosts.current.map(g => `Ghost ${g.type} at (${g.x}, ${g.y})`));
   };
@@ -258,10 +249,8 @@ const GameCanvas: React.FC = () => {
   };
   
   const canMove = (x: number, y: number): boolean => {
-    // Extra debug logs to help understand what's happening
     console.log(`Checking if can move to: (${x}, ${y})`);
     
-    // Handle warping for horizontal movement
     if (x < 0) return true;
     if (x >= GRID_WIDTH) return true;
     
@@ -277,7 +266,6 @@ const GameCanvas: React.FC = () => {
   };
   
   const collectItem = (x: number, y: number) => {
-    // Ensure x and y are within bounds
     if (x < 0 || x >= GRID_WIDTH || y < 0 || y >= GRID_HEIGHT) {
       return;
     }
@@ -321,8 +309,6 @@ const GameCanvas: React.FC = () => {
           const points = GHOST_POINTS * ghostCombo.current;
           setScore(prevScore => prevScore + points);
           ghostCombo.current *= GHOST_COMBO_MULTIPLIER;
-          
-          // Play eating ghost sound (if we had one)
         } else if (ghost.state !== GhostState.EATEN) {
           setLives(prevLives => prevLives - 1);
           
@@ -331,8 +317,6 @@ const GameCanvas: React.FC = () => {
           } else {
             resetLevel();
           }
-          
-          // Play death sound (if we had one)
         }
       }
     });
@@ -341,7 +325,6 @@ const GameCanvas: React.FC = () => {
   const update = (deltaTime: number) => {
     if (gameState !== GameState.PLAYING) return;
     
-    // Update player position and movement
     const playerDidMove = player.current.update(
       deltaTime, 
       lastDirection.current, 
@@ -352,7 +335,6 @@ const GameCanvas: React.FC = () => {
     if (playerDidMove) {
       lastDirection.current = player.current.direction;
       
-      // Collect items at the player's position (floored to get the grid cell)
       const playerCellX = Math.floor(player.current.x);
       const playerCellY = Math.floor(player.current.y);
       collectItem(playerCellX, playerCellY);
@@ -540,14 +522,11 @@ const GameCanvas: React.FC = () => {
       }
     });
     
-    // Draw Pac-Man with correct size and improved positioning
     const pacmanSize = CELL_SIZE * 1.5;
     
-    // Fix Pac-Man's rendering position to be properly centered on his game coordinates
     const drawX = (player.current.x * CELL_SIZE) - (pacmanSize / 2) + (CELL_SIZE / 2);
     const drawY = (player.current.y * CELL_SIZE) - (pacmanSize / 2) + (CELL_SIZE / 2);
     
-    // Set mouth angles based on direction
     let startAngle = 0.2 * Math.PI;
     let endAngle = 1.8 * Math.PI;
     
@@ -570,18 +549,14 @@ const GameCanvas: React.FC = () => {
         break;
     }
     
-    // Make mouth animation more fluid and ensure it always moves
-    const mouthSpeed = 0.2; // Faster animation
-    // Use Date.now() for continuous animation even when not moving
-    const t = Math.sin(Date.now() * mouthSpeed) * 0.5 + 0.5; // Oscillate between 0 and 1
+    const mouthSpeed = 0.2;
+    const t = Math.sin(Date.now() * mouthSpeed) * 0.5 + 0.5;
     
-    // Calculate mouth angles for more fluid animation - wider gap
     const mouthOpenAmount = player.current.direction === Direction.NONE ? 0.05 * Math.PI : 0.3 * Math.PI;
     const finalStartAngle = startAngle + (mouthOpenAmount * t);
     const finalEndAngle = endAngle - (mouthOpenAmount * t);
     
-    // Draw Pac-Man body - a bright yellow circle with animated mouth
-    ctx.fillStyle = '#FFFF00'; // Bright yellow
+    ctx.fillStyle = '#FFFF00';
     ctx.beginPath();
     ctx.arc(
       drawX + pacmanSize / 2,
@@ -593,8 +568,7 @@ const GameCanvas: React.FC = () => {
     ctx.lineTo(drawX + pacmanSize / 2, drawY + pacmanSize / 2);
     ctx.fill();
     
-    // Debug visualization of grid center points - helpful for debugging
-    if (false) { // Set to true to enable debug grid
+    if (false) {
       for (let y = 0; y < GRID_HEIGHT; y++) {
         for (let x = 0; x < GRID_WIDTH; x++) {
           if (gameBoard.current[y][x] !== CellType.WALL) {
@@ -788,4 +762,25 @@ const GameCanvas: React.FC = () => {
               <button
                 onTouchStart={() => handleTouchStart(Direction.RIGHT)}
                 className="w-16 h-16 bg-primary rounded-full shadow-lg flex items-center justify-center text-white text-3xl"
-                aria-label="
+                aria-label="Move Right"
+              >
+                D
+              </button>
+            </div>
+            <div className="col-start-2 row-start-3">
+              <button
+                onTouchStart={() => handleTouchStart(Direction.DOWN)}
+                className="w-16 h-16 bg-primary rounded-full shadow-lg flex items-center justify-center text-white text-3xl"
+                aria-label="Move Down"
+              >
+                S
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default GameCanvas;
