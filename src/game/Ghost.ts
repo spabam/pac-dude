@@ -186,7 +186,7 @@ export class Ghost {
     
     // Simplified ghost house exit logic
     if ((isInGhostHouse || this.isLeavingGhostHouse) && this.readyToLeave) {
-      this.handleGhostHouseExit(moveDistance);
+      this.handleGhostHouseExit(moveDistance, grid);
       return;
     }
     
@@ -250,7 +250,7 @@ export class Ghost {
     }
   }
   
-  handleGhostHouseExit(moveDistance: number) {
+  handleGhostHouseExit(moveDistance: number, grid: number[][]) {
     console.log(`Ghost ${this.type} exiting ghost house, step: ${this.nextLeaveStep}, position: (${this.x}, ${this.y})`);
     
     // If not officially in leaving mode yet, start it
@@ -543,16 +543,16 @@ export class Ghost {
       
       switch (dir) {
         case Direction.UP:
-          nextY -= 1;
+          nextY--;
           break;
         case Direction.DOWN:
-          nextY += 1;
+          nextY++;
           break;
         case Direction.LEFT:
-          nextX -= 1;
+          nextX--;
           break;
         case Direction.RIGHT:
-          nextX += 1;
+          nextX++;
           break;
       }
       
