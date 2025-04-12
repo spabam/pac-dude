@@ -120,6 +120,73 @@ export class Ghost {
     
     const moveDistance = moveSpeed * deltaTime;
     
+    // Define ghost house boundaries more precisely
+    const isInGhostHouse = 
+      Math.floor(this.y) >= 13 && Math.floor(this.y) <= 15 &&
+      Math.floor(this.x) >= 11 && Math.floor(this.x) <= 16;
+    
+    // Ghost house exit logic
+    if (isInGhostHouse && this.readyToLeave) {
+      console.log(`Ghost ${this.type} in ghost house at (${this.x}, ${this.y}), ready to leave, direction: ${this.direction}`);
+      
+      // Step 1: First move to center position (14, 14)
+      if (Math.abs(this.x - 14) > 0.5 || Math.abs(this.y - 14) > 0.5) {
+        // Move toward center by forcing a direction based on current position
+        if (this.x < 14) {
+          this.direction = Direction.RIGHT;
+          this.x += moveDistance;
+        } else if (this.x > 15) {
+          this.direction = Direction.LEFT;
+          this.x -= moveDistance;
+        } else if (this.y < 14) {
+          this.direction = Direction.DOWN;
+          this.y += moveDistance;
+        } else if (this.y > 14) {
+          this.direction = Direction.UP;
+          this.y -= moveDistance;
+        }
+        
+        console.log(`Ghost ${this.type} moving to center with direction: ${this.direction}`);
+        return;
+      }
+      
+      // Step 2: At center, force position to exact center and move up
+      else if (Math.abs(this.x - 14) <= 0.5 && Math.abs(this.y - 14) <= 0.5) {
+        console.log(`Ghost ${this.type} at center (${this.x}, ${this.y}), moving up to door`);
+        
+        // Snap to center
+        this.x = 14;
+        this.y = 14;
+        
+        // Force upward movement
+        this.direction = Direction.UP;
+        this.y -= moveDistance * 2; // Double speed to push through
+        return;
+      }
+      
+      // Step 3: At or near the door (around y=13), push through
+      else if (Math.abs(this.x - 14) <= 0.5 && this.y <= 13.5 && this.y > 12) {
+        console.log(`Ghost ${this.type} at door (${this.x}, ${this.y}), forcing UP direction`);
+        
+        // Force exact x position
+        this.x = 14;
+        
+        // Strong upward push
+        this.direction = Direction.UP;
+        this.y -= moveDistance * 3; // Triple speed to ensure passage
+        
+        // If we're close to passing the door, give an extra push
+        if (this.y <= 13 && this.y > 12) {
+          this.y = 11.5; // Force jump past the door
+          console.log(`Ghost ${this.type} getting extra push through doorway to ${this.y}`);
+          
+          // No longer in ghost house and ready to move normally
+          this.readyToLeave = false;
+        }
+        return;
+      }
+    }
+    
     // Only change direction at grid intersections or when random timer expires for RANDOM state
     const isAtIntersection = 
       Math.abs(this.x - Math.floor(this.x) - 0.5) < 0.1 && 
@@ -128,97 +195,8 @@ export class Ghost {
     const shouldChangeRandomDirection = 
       this.state === GhostState.RANDOM && 
       (currentTime - this.lastRandomDirectionChange) > GHOST_RANDOM_DIRECTION_CHANGE;
-      
-    // Define ghost house boundaries more precisely
-    const isInGhostHouse = 
-      Math.floor(this.y) >= 13 && Math.floor(this.y) <= 15 &&
-      Math.floor(this.x) >= 11 && Math.floor(this.x) <= 16;
     
-    // Ghost house exit logic: we need to handle each stage of exit separately
-    if (isInGhostHouse && this.readyToLeave) {
-      console.log(`Ghost ${this.type} in ghost house at (${this.x}, ${this.y}), ready to leave, direction: ${this.direction}`);
-      
-      // Stage 1: Move to the center of the ghost house at (14, 14)
-      if (Math.abs(this.x - 14.5) > 0.3 || Math.abs(this.y - 14.5) > 0.3) {
-        // Not at center yet, move toward center position
-        this.direction = this.getDirectionToTarget(
-          Math.floor(this.x),
-          Math.floor(this.y),
-          14,
-          14,
-          grid,
-          true // Can pass through ghost house door
-        );
-        
-        console.log(`Ghost ${this.type} moving to center with direction: ${this.direction}`);
-        
-        // Move toward center with explicit coordinate handling
-        switch (this.direction) {
-          case Direction.UP:
-            this.y -= moveDistance;
-            break;
-          case Direction.DOWN:
-            this.y += moveDistance;
-            break;
-          case Direction.LEFT:
-            this.x -= moveDistance;
-            break;
-          case Direction.RIGHT:
-            this.x += moveDistance;
-            break;
-        }
-        
-        // Skip the rest of the update logic since we're handling direct movement here
-        return;
-      }
-      
-      // Stage 2: From center, move up to the door at (14, 13)
-      else if (Math.abs(this.x - 14.5) <= 0.3 && Math.abs(this.y - 14.5) <= 0.3) {
-        // At center position, now move up to the door
-        console.log(`Ghost ${this.type} at center (${this.x}, ${this.y}), moving up to door`);
-        
-        // Force position to exact center first
-        this.x = 14.5;
-        this.y = 14.5;
-        
-        // Then force movement upward
-        this.direction = Direction.UP;
-        this.y -= moveDistance * 1.2; // Give a little extra push
-        
-        // Skip the rest of the update logic
-        return;
-      }
-      
-      // Stage 3: At door position, force move up and through doorway
-      else if (Math.abs(this.x - 14.5) <= 0.2 && Math.abs(this.y - 13.5) <= 0.2) {
-        // At the door, force move up to exit
-        console.log(`Ghost ${this.type} at door (${this.x}, ${this.y}), forcing UP direction`);
-        this.direction = Direction.UP;
-        
-        // Ensure we move enough to pass the doorway completely
-        this.y -= moveDistance * 1.5; // Apply extra push upward
-        
-        // If close to passing the doorway, give an extra push
-        if (this.y <= 13.0 && this.y > 12.5) {
-          console.log(`Ghost ${this.type} getting extra push through doorway`);
-          this.y = 12.4; // Force it past the doorway
-        }
-        
-        // Once fully out, ensure we're in the corridor
-        if (this.y <= 12.5) {
-          console.log(`Ghost ${this.type} has exited the ghost house`);
-          // Set position to be in corridor
-          this.x = 14.5;
-          this.y = 11.5;
-          // No longer ready to leave since we've left already
-          this.readyToLeave = false;
-          return;
-        }
-        
-        return; // Skip normal movement logic
-      }
-    }
-    else if (isAtIntersection || shouldChangeRandomDirection) {
+    if (!isInGhostHouse && (isAtIntersection || shouldChangeRandomDirection)) {
       // If at intersection, snap to grid center for precision
       if (isAtIntersection) {
         this.x = Math.floor(this.x) + 0.5;
@@ -262,28 +240,20 @@ export class Ghost {
     
     switch (this.direction) {
       case Direction.UP:
-        if (this.y - moveDistance < Math.floor(this.y)) {
-          nextY -= 1;
-        }
+        nextY -= 1;
         break;
       case Direction.DOWN:
-        if (this.y + moveDistance >= Math.floor(this.y) + 1) {
-          nextY += 1;
-        }
+        nextY += 1;
         break;
       case Direction.LEFT:
-        if (this.x - moveDistance < Math.floor(this.x)) {
-          nextX -= 1;
-        }
+        nextX -= 1;
         break;
       case Direction.RIGHT:
-        if (this.x + moveDistance >= Math.floor(this.x) + 1) {
-          nextX += 1;
-        }
+        nextX += 1;
         break;
     }
     
-    // Critical for ghost door traversal: determine if ghost can pass through ghost doors
+    // Determine if ghost can pass through ghost doors
     const canPassGhostDoor = 
       this.state === GhostState.EATEN || // Always allow eaten ghosts to return home
       this.readyToLeave ||  // Allow ghosts that are ready to leave
@@ -308,29 +278,6 @@ export class Ghost {
         case Direction.RIGHT:
           this.x += moveDistance;
           break;
-      }
-      
-      // Special case 1: If the ghost is at the doorway cell at position (14, 13)
-      if (Math.abs(this.x - 14.5) < 0.1 && Math.abs(this.y - 13.5) < 0.2 && 
-          this.direction === Direction.UP && this.readyToLeave) {
-        console.log(`Ghost ${this.type} at door, applying extra upward push`);
-        this.y -= 0.3; // Extra push to get through the door
-      }
-      
-      // Special case 2: If the ghost just moved through the door cell to position (14, 12)
-      if (Math.abs(this.x - 14.5) < 0.1 && Math.abs(this.y - 12.5) < 0.2 && 
-          this.direction === Direction.UP) {
-        console.log(`Ghost ${this.type} just passed door, continuing up with extra push`);
-        this.y = 12.0; // Push it fully past the doorway
-      }
-      
-      // Once ghost moves out of ghost house area, it can't pass ghost doors anymore
-      // unless it's in EATEN state
-      if (!isInGhostHouse && 
-          this.y < 13 && // Only disable once fully above the ghost house
-          this.state !== GhostState.EATEN) {
-        this.readyToLeave = false;
-        console.log(`Ghost ${this.type} has left ghost house, readyToLeave set to false`);
       }
     } else if (isAtIntersection) {
       // We hit a wall at an intersection, choose a new direction

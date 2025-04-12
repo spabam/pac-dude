@@ -1,5 +1,3 @@
-
-
 // Player starting position
 export const PLAYER_START_X = 14; // Start in horizontal center
 export const PLAYER_START_Y = 23.5; // Updated position to be in a valid corridor
@@ -11,9 +9,9 @@ export const CELL_SIZE = 16;
 
 // Game mechanics
 export const PLAYER_SPEED = 8; // Increased from 6 to 8 for faster movement
-export const GHOST_SPEED = 3.5; // Reduced from 5 to 3.5 for slower ghost movement
-export const GHOST_FRIGHTENED_SPEED = 1.5; // Reduced from 2 to 1.5
-export const GHOST_TUNNEL_SPEED = 1.5; // Reduced from 2 to 1.5
+export const GHOST_SPEED = 5; // Increased from 3.5 to 5 for faster ghost movement
+export const GHOST_FRIGHTENED_SPEED = 2.5; // Increased from 1.5 to 2.5
+export const GHOST_TUNNEL_SPEED = 2.5; // Increased from 1.5 to 2.5
 export const GHOST_RANDOM_DIRECTION_CHANGE = 1000; // ms
 
 // Scoring
@@ -25,7 +23,7 @@ export const GHOST_COMBO_MULTIPLIER = 2;
 // Timers
 export const POWER_PELLET_DURATION = 8000; // 8 seconds
 export const GHOST_FLASH_DURATION = 2000; // 2 seconds before power mode ends
-export const GHOST_HOUSE_TIME = 2000; // Reduced from 3000 to 2000 ms for quicker ghost release
+export const GHOST_HOUSE_TIME = 1000; // Reduced from 2000 to 1000 ms for even quicker ghost release
 
 // Enums
 export const enum Direction {
@@ -66,4 +64,3 @@ export const enum GhostState {
   EATEN = 3,      // Eyes only, returning to ghost house
   RANDOM = 4      // Move randomly
 }
-
