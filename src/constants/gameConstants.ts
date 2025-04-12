@@ -9,15 +9,18 @@ export const GRID_HEIGHT = 31;
 export const CELL_SIZE = 16;
 
 // Game mechanics
-export const PLAYER_SPEED = 8; // Increased from 6 to 8 for faster movement
-export const GHOST_SPEED = 6; // Increased from 5 to 6 for more consistent movement
-export const GHOST_FRIGHTENED_SPEED = 4; // Increased from 3 to 4 for more reliable movement
-export const GHOST_TUNNEL_SPEED = 4; // Increased from 3 to 4 for more reliable movement
-export const GHOST_RANDOM_DIRECTION_CHANGE = 500; // Reduced from 800 to 500 for more dynamic movement
+export const PLAYER_SPEED = 8; // Pac-Man speed remains the same
+export const GHOST_SPEED = 5; // Reduced from 6 to 5 to make ghosts slower than Pac-Man
+export const GHOST_FRIGHTENED_SPEED = 3; // Reduced from 4 to 3
+export const GHOST_TUNNEL_SPEED = 3; // Reduced from 4 to 3 
+export const GHOST_RANDOM_DIRECTION_CHANGE = 500; // Keep the same
+
+// Level configuration
+export const CHASE_MODE_START_LEVEL = 4; // Ghosts start chasing player from level 4 onwards
 
 // Ghost movement thresholds
-export const INTERSECTION_THRESHOLD = 0.1; // Reduced for more precise intersection detection
-export const POSITION_RESET_THRESHOLD = 500; // Reduced from 1000 ms to reset ghost position quicker if stuck
+export const INTERSECTION_THRESHOLD = 0.1; // Keep the same
+export const POSITION_RESET_THRESHOLD = 500; // Keep the same
 
 // Scoring
 export const DOT_POINTS = 10;
@@ -28,7 +31,7 @@ export const GHOST_COMBO_MULTIPLIER = 2;
 // Timers
 export const POWER_PELLET_DURATION = 8000; // 8 seconds
 export const GHOST_FLASH_DURATION = 2000; // 2 seconds before power mode ends
-export const GHOST_HOUSE_TIME = 200; // Reduced further for quicker ghost release
+export const GHOST_HOUSE_TIME = 200; // Keep the same
 
 // Enums
 export const enum Direction {

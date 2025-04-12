@@ -1,4 +1,3 @@
-
 import { 
   Direction, 
   GhostType, 
@@ -10,7 +9,8 @@ import {
   GHOST_RANDOM_DIRECTION_CHANGE,
   GHOST_HOUSE_TIME,
   INTERSECTION_THRESHOLD,
-  POSITION_RESET_THRESHOLD
+  POSITION_RESET_THRESHOLD,
+  CHASE_MODE_START_LEVEL
 } from '../constants/gameConstants';
 
 interface Position {
@@ -46,8 +46,8 @@ export class Ghost {
     this.y = Math.floor(y) + 0.5;
     this.direction = this.getInitialDirection(type);
     
-    // Set all ghosts to CHASE state initially for better movement
-    this.state = GhostState.CHASE;
+    // Set all ghosts to RANDOM state initially for early levels
+    this.state = GhostState.RANDOM;
     
     this.speed = GHOST_SPEED;
     this.targetX = 0;
@@ -109,20 +109,30 @@ export class Ghost {
     grid: number[][], 
     playerPos: Position,
     powerMode: boolean,
-    currentTime: number = Date.now()
+    currentTime: number = Date.now(),
+    currentLevel: number = 1
   ) {
     // Check if ghost is respawning from being eaten
     if (this.state === GhostState.EATEN && this.respawnTimer !== null) {
       if (currentTime >= this.respawnTimer) {
         // Ghost has waited long enough, allow it to leave the house
         this.respawnTimer = null;
-        this.state = powerMode ? GhostState.FRIGHTENED : GhostState.CHASE;
+        
+        // Set state based on current level - only chase on level 4+
+        if (currentLevel >= CHASE_MODE_START_LEVEL && !powerMode) {
+          this.state = GhostState.CHASE;
+        } else if (powerMode) {
+          this.state = GhostState.FRIGHTENED;
+        } else {
+          this.state = GhostState.RANDOM;
+        }
+        
         this.readyToLeave = true;
       }
     }
     
-    // Update ghost target based on state and type
-    this.updateTarget(playerPos);
+    // Update ghost target based on state, type, and current level
+    this.updateTarget(playerPos, currentLevel);
     
     // Calculate how far to move based on speed and time
     let moveSpeed = this.speed;
@@ -247,8 +257,8 @@ export class Ghost {
           );
         }
       } else {
-        // Normal movement based on current state
-        if (this.state === GhostState.RANDOM && (isAtIntersection || shouldChangeRandomDirection)) {
+        // On lower levels (1-3), always move randomly regardless of state
+        if (currentLevel < CHASE_MODE_START_LEVEL || this.state === GhostState.RANDOM) {
           this.direction = this.chooseRandomDirection(grid);
           this.lastRandomDirectionChange = currentTime;
         } else {
@@ -648,11 +658,17 @@ export class Ghost {
     return distances[0].direction;
   }
   
-  updateTarget(playerPos: Position) {
+  updateTarget(playerPos: Position, currentLevel: number = 1) {
     // If eaten, target is the ghost house
     if (this.state === GhostState.EATEN) {
       this.targetX = this.homeX;
       this.targetY = this.homeY;
+      return;
+    }
+    
+    // In early levels (1-3), ghosts should move randomly
+    if (currentLevel < CHASE_MODE_START_LEVEL) {
+      // No specific target for random movement
       return;
     }
     
@@ -752,8 +768,15 @@ export class Ghost {
     }
   }
   
-  setState(state: GhostState) {
-    this.state = state;
+  setState(state: GhostState, currentLevel: number = 1) {
+    // For levels 1-3, always use RANDOM state unless eaten or frightened
+    if (currentLevel < CHASE_MODE_START_LEVEL && 
+        state !== GhostState.EATEN && 
+        state !== GhostState.FRIGHTENED) {
+      this.state = GhostState.RANDOM;
+    } else {
+      this.state = state;
+    }
     
     // If ghost was eaten, reset respawn timer
     if (state === GhostState.EATEN) {
@@ -761,7 +784,7 @@ export class Ghost {
     }
     
     // Update speed based on state
-    switch (state) {
+    switch (this.state) {
       case GhostState.FRIGHTENED:
         this.speed = GHOST_FRIGHTENED_SPEED;
         break;
@@ -769,7 +792,7 @@ export class Ghost {
         this.speed = GHOST_SPEED * 1.5;
         break;
       case GhostState.RANDOM:
-        this.speed = GHOST_SPEED * 0.9; // Increased from 0.8 for more reliable movement
+        this.speed = GHOST_SPEED * 0.9;
         break;
       default:
         this.speed = GHOST_SPEED;
