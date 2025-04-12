@@ -1,4 +1,3 @@
-
 import { Direction, PLAYER_SPEED } from '../constants/gameConstants';
 
 export class Player {
@@ -79,7 +78,8 @@ export class Player {
             this.y = currentGridY + 0.5;
           }
           
-          console.log(`Direction changed to: ${Direction[nextDirection]}`);
+          // Change from using enum as a string to directly logging the direction change
+          console.log(`Direction changed to: ${this.getDirectionName(nextDirection)}`);
         }
       }
     }
@@ -165,8 +165,8 @@ export class Player {
     // Handle warping (teleportation from one side to another)
     this.handleWarping();
     
-    // Log final position and movement status
-    console.log(`Position: (${this.x.toFixed(2)}, ${this.y.toFixed(2)}), Direction: ${Direction[this.direction]}, Moved: ${moved}`);
+    // Log final position and movement status using helper method instead of enum as string
+    console.log(`Position: (${this.x.toFixed(2)}, ${this.y.toFixed(2)}), Direction: ${this.getDirectionName(this.direction)}, Moved: ${moved}`);
     
     return moved;
   }
@@ -205,6 +205,24 @@ export class Player {
       this.x = 28; // Assuming grid width is 28
     } else if (this.x >= 28) {
       this.x = 0;
+    }
+  }
+  
+  // Helper method to get direction name as a string
+  private getDirectionName(dir: Direction): string {
+    switch (dir) {
+      case Direction.NONE:
+        return "NONE";
+      case Direction.UP:
+        return "UP";
+      case Direction.DOWN:
+        return "DOWN";
+      case Direction.LEFT:
+        return "LEFT";
+      case Direction.RIGHT:
+        return "RIGHT";
+      default:
+        return "UNKNOWN";
     }
   }
 }
