@@ -31,6 +31,8 @@ export class Ghost {
   lastRandomDirectionChange: number;
   readyToLeave: boolean;
   respawnTimer: number | null;
+  isLeavingGhostHouse: boolean;
+  nextLeaveStep: number;
 
   constructor(type: GhostType, x: number, y: number) {
     this.type = type;
@@ -49,24 +51,33 @@ export class Ghost {
     this.lastRandomDirectionChange = 0;
     this.readyToLeave = true; // Start ghosts ready to leave
     this.respawnTimer = null;
+    this.isLeavingGhostHouse = false;
+    this.nextLeaveStep = 0;
     
     // Set scatter targets based on ghost type (corners of the map)
     switch (type) {
       case GhostType.BLINKY:
         this.scatterTargetX = 27;
         this.scatterTargetY = 0;
+        // Blinky starts outside ghost house
+        if (y === 11) {
+          this.isLeavingGhostHouse = false;
+        }
         break;
       case GhostType.PINKY:
         this.scatterTargetX = 0;
         this.scatterTargetY = 0;
+        this.isLeavingGhostHouse = true;
         break;
       case GhostType.INKY:
         this.scatterTargetX = 27;
         this.scatterTargetY = 30;
+        this.isLeavingGhostHouse = true;
         break;
       case GhostType.CLYDE:
         this.scatterTargetX = 0;
         this.scatterTargetY = 30;
+        this.isLeavingGhostHouse = true;
         break;
     }
   }
@@ -120,71 +131,15 @@ export class Ghost {
     
     const moveDistance = moveSpeed * deltaTime;
     
-    // Define ghost house boundaries more precisely
+    // Simple ghost house check
     const isInGhostHouse = 
-      Math.floor(this.y) >= 13 && Math.floor(this.y) <= 15 &&
-      Math.floor(this.x) >= 11 && Math.floor(this.x) <= 16;
+      this.y >= 13 && this.y <= 15 &&
+      this.x >= 11.5 && this.x <= 16.5;
     
-    // Ghost house exit logic
-    if (isInGhostHouse && this.readyToLeave) {
-      console.log(`Ghost ${this.type} in ghost house at (${this.x}, ${this.y}), ready to leave, direction: ${this.direction}`);
-      
-      // Step 1: First move to center position (14, 14)
-      if (Math.abs(this.x - 14) > 0.5 || Math.abs(this.y - 14) > 0.5) {
-        // Move toward center by forcing a direction based on current position
-        if (this.x < 14) {
-          this.direction = Direction.RIGHT;
-          this.x += moveDistance;
-        } else if (this.x > 15) {
-          this.direction = Direction.LEFT;
-          this.x -= moveDistance;
-        } else if (this.y < 14) {
-          this.direction = Direction.DOWN;
-          this.y += moveDistance;
-        } else if (this.y > 14) {
-          this.direction = Direction.UP;
-          this.y -= moveDistance;
-        }
-        
-        console.log(`Ghost ${this.type} moving to center with direction: ${this.direction}`);
-        return;
-      }
-      
-      // Step 2: At center, force position to exact center and move up
-      else if (Math.abs(this.x - 14) <= 0.5 && Math.abs(this.y - 14) <= 0.5) {
-        console.log(`Ghost ${this.type} at center (${this.x}, ${this.y}), moving up to door`);
-        
-        // Snap to center
-        this.x = 14;
-        this.y = 14;
-        
-        // Force upward movement
-        this.direction = Direction.UP;
-        this.y -= moveDistance * 2; // Double speed to push through
-        return;
-      }
-      
-      // Step 3: At or near the door (around y=13), push through
-      else if (Math.abs(this.x - 14) <= 0.5 && this.y <= 13.5 && this.y > 12) {
-        console.log(`Ghost ${this.type} at door (${this.x}, ${this.y}), forcing UP direction`);
-        
-        // Force exact x position
-        this.x = 14;
-        
-        // Strong upward push
-        this.direction = Direction.UP;
-        this.y -= moveDistance * 3; // Triple speed to ensure passage
-        
-        // If we're close to passing the door, give an extra push
-        if (this.y <= 13 && this.y > 12) {
-          this.y = 11.5; // Force jump past the door
-          console.log(`Ghost ${this.type} getting extra push through doorway to ${this.y}`);
-          
-          // No longer in ghost house and ready to move normally
-          this.readyToLeave = false;
-        }
-        return;
-      }
+    // Simplified ghost house exit logic
+    if ((isInGhostHouse || this.isLeavingGhostHouse) && this.readyToLeave) {
+      this.handleGhostHouseExit(moveDistance);
+      return;
     }
     
     // Only change direction at grid intersections or when random timer expires for RANDOM state
@@ -234,58 +189,9 @@ export class Ghost {
       }
     }
     
-    // Check if we can move in the current direction
-    let nextX = Math.floor(this.x);
-    let nextY = Math.floor(this.y);
-    
-    switch (this.direction) {
-      case Direction.UP:
-        nextY -= 1;
-        break;
-      case Direction.DOWN:
-        nextY += 1;
-        break;
-      case Direction.LEFT:
-        nextX -= 1;
-        break;
-      case Direction.RIGHT:
-        nextX += 1;
-        break;
-    }
-    
-    // Determine if ghost can pass through ghost doors
-    const canPassGhostDoor = 
-      this.state === GhostState.EATEN || // Always allow eaten ghosts to return home
-      this.readyToLeave ||  // Allow ghosts that are ready to leave
-      isInGhostHouse;      // Allow ghosts currently in the house
-    
-    // Debug movement information
-    console.log(`Ghost ${this.type} at (${this.x}, ${this.y}), direction: ${this.direction}, trying to move to (${nextX}, ${nextY}), canPassDoor: ${canPassGhostDoor}`);
-    
-    // Check if the next cell is valid
-    if (this.isValidMove(nextX, nextY, grid, canPassGhostDoor)) {
-      // Move ghost based on current direction
-      switch (this.direction) {
-        case Direction.UP:
-          this.y -= moveDistance;
-          break;
-        case Direction.DOWN:
-          this.y += moveDistance;
-          break;
-        case Direction.LEFT:
-          this.x -= moveDistance;
-          break;
-        case Direction.RIGHT:
-          this.x += moveDistance;
-          break;
-      }
-    } else if (isAtIntersection) {
-      // We hit a wall at an intersection, choose a new direction
-      if (this.state === GhostState.RANDOM) {
-        this.direction = this.chooseRandomDirection(grid);
-      } else {
-        this.direction = this.chooseNextDirection(grid);
-      }
+    // Regular movement logic for outside ghost house
+    if (!isInGhostHouse && !this.isLeavingGhostHouse) {
+      this.moveInDirection(moveDistance, grid);
     }
     
     // Handle warping (teleporting from one side to another)
@@ -294,6 +200,116 @@ export class Ghost {
     } else if (this.x >= 28) {
       this.x = 0;
     }
+  }
+  
+  // Simplified ghost house exit logic
+  handleGhostHouseExit(moveDistance: number) {
+    console.log(`Ghost ${this.type} exiting ghost house, step: ${this.nextLeaveStep}, position: (${this.x}, ${this.y})`);
+    
+    // If not officially in leaving mode yet, start it
+    if (!this.isLeavingGhostHouse) {
+      this.isLeavingGhostHouse = true;
+      this.nextLeaveStep = 0;
+    }
+    
+    // Three step exit process
+    switch (this.nextLeaveStep) {
+      case 0: // Step 1: Move to center x position
+        if (Math.abs(this.x - 14) > 0.1) {
+          if (this.x < 14) {
+            this.direction = Direction.RIGHT;
+            this.x += moveDistance;
+          } else {
+            this.direction = Direction.LEFT;
+            this.x -= moveDistance;
+          }
+        } else {
+          // Snap to exact position and move to next step
+          this.x = 14;
+          this.nextLeaveStep = 1;
+        }
+        break;
+        
+      case 1: // Step 2: Move to y position 14 (center of ghost house)
+        if (Math.abs(this.y - 14) > 0.1) {
+          if (this.y < 14) {
+            this.direction = Direction.DOWN;
+            this.y += moveDistance;
+          } else {
+            this.direction = Direction.UP;
+            this.y -= moveDistance;
+          }
+        } else {
+          // Snap to exact position and move to next step
+          this.y = 14;
+          this.nextLeaveStep = 2;
+        }
+        break;
+        
+      case 2: // Step 3: Move up to exit ghost house
+        this.direction = Direction.UP;
+        this.y -= moveDistance * 2; // Double speed to ensure movement
+        
+        // When we reach position y=11, we're out of the ghost house
+        if (this.y <= 11.5) {
+          // Snap to exact exit position
+          this.y = 11.5;
+          this.isLeavingGhostHouse = false;
+          this.readyToLeave = false; // No longer needs special handling
+          
+          console.log(`Ghost ${this.type} has successfully exited ghost house at (${this.x}, ${this.y})`);
+        }
+        break;
+    }
+  }
+  
+  // Move ghost based on current direction
+  moveInDirection(moveDistance: number, grid: number[][]) {
+    // Check if the next cell is valid
+    let nextX = this.x;
+    let nextY = this.y;
+    
+    switch (this.direction) {
+      case Direction.UP:
+        nextY -= moveDistance;
+        break;
+      case Direction.DOWN:
+        nextY += moveDistance;
+        break;
+      case Direction.LEFT:
+        nextX -= moveDistance;
+        break;
+      case Direction.RIGHT:
+        nextX += moveDistance;
+        break;
+    }
+    
+    // Check if the ghost would hit a wall by moving
+    const nextCellX = Math.floor(nextX);
+    const nextCellY = Math.floor(nextY);
+    
+    // If the next cell is a wall, stop at the current cell's boundary
+    if (!this.isValidMove(nextCellX, nextCellY, grid, this.state === GhostState.EATEN)) {
+      const isAtIntersection = 
+        Math.abs(this.x - Math.floor(this.x) - 0.5) < 0.1 && 
+        Math.abs(this.y - Math.floor(this.y) - 0.5) < 0.1;
+      
+      if (isAtIntersection) {
+        // We're at an intersection and hit a wall, choose a new direction
+        if (this.state === GhostState.RANDOM) {
+          this.direction = this.chooseRandomDirection(grid);
+        } else {
+          this.direction = this.chooseNextDirection(grid);
+        }
+      }
+      
+      // Don't update position
+      return;
+    }
+    
+    // If move is valid, update position
+    this.x = nextX;
+    this.y = nextY;
   }
   
   // Choose a random direction from available directions
@@ -305,19 +321,19 @@ export class Ghost {
     const oppositeDirection = this.getOppositeDirection(this.direction);
     const availableDirections: Direction[] = [];
     
-    if (this.isValidMove(x, y - 1, grid, this.readyToLeave) && this.direction !== Direction.DOWN) {
+    if (this.isValidMove(x, y - 1, grid, this.state === GhostState.EATEN) && this.direction !== Direction.DOWN) {
       availableDirections.push(Direction.UP);
     }
     
-    if (this.isValidMove(x, y + 1, grid, this.readyToLeave) && this.direction !== Direction.UP) {
+    if (this.isValidMove(x, y + 1, grid, this.state === GhostState.EATEN) && this.direction !== Direction.UP) {
       availableDirections.push(Direction.DOWN);
     }
     
-    if (this.isValidMove(x - 1, y, grid, this.readyToLeave) && this.direction !== Direction.RIGHT) {
+    if (this.isValidMove(x - 1, y, grid, this.state === GhostState.EATEN) && this.direction !== Direction.RIGHT) {
       availableDirections.push(Direction.LEFT);
     }
     
-    if (this.isValidMove(x + 1, y, grid, this.readyToLeave) && this.direction !== Direction.LEFT) {
+    if (this.isValidMove(x + 1, y, grid, this.state === GhostState.EATEN) && this.direction !== Direction.LEFT) {
       availableDirections.push(Direction.RIGHT);
     }
     
@@ -341,26 +357,26 @@ export class Ghost {
     // Get available directions
     const availableDirections: Direction[] = [];
     
-    if (this.isValidMove(x, y - 1, grid, this.state === GhostState.EATEN || this.readyToLeave)) {
-      if (this.direction !== Direction.DOWN) {
+    if (this.isValidMove(x, y - 1, grid, this.state === GhostState.EATEN)) {
+      if (this.direction !== Direction.DOWN || this.state === GhostState.FRIGHTENED) {
         availableDirections.push(Direction.UP);
       }
     }
     
-    if (this.isValidMove(x, y + 1, grid, this.state === GhostState.EATEN || this.readyToLeave)) {
-      if (this.direction !== Direction.UP) {
+    if (this.isValidMove(x, y + 1, grid, this.state === GhostState.EATEN)) {
+      if (this.direction !== Direction.UP || this.state === GhostState.FRIGHTENED) {
         availableDirections.push(Direction.DOWN);
       }
     }
     
-    if (this.isValidMove(x - 1, y, grid, this.state === GhostState.EATEN || this.readyToLeave)) {
-      if (this.direction !== Direction.RIGHT) {
+    if (this.isValidMove(x - 1, y, grid, this.state === GhostState.EATEN)) {
+      if (this.direction !== Direction.RIGHT || this.state === GhostState.FRIGHTENED) {
         availableDirections.push(Direction.LEFT);
       }
     }
     
-    if (this.isValidMove(x + 1, y, grid, this.state === GhostState.EATEN || this.readyToLeave)) {
-      if (this.direction !== Direction.LEFT) {
+    if (this.isValidMove(x + 1, y, grid, this.state === GhostState.EATEN)) {
+      if (this.direction !== Direction.LEFT || this.state === GhostState.FRIGHTENED) {
         availableDirections.push(Direction.RIGHT);
       }
     }
@@ -382,7 +398,7 @@ export class Ghost {
       this.targetX, 
       this.targetY, 
       grid,
-      this.state === GhostState.EATEN || this.readyToLeave
+      this.state === GhostState.EATEN
     );
   }
   
@@ -390,7 +406,7 @@ export class Ghost {
   isValidMove(x: number, y: number, grid: number[][], canPassGhostDoor: boolean): boolean {
     // Check grid bounds
     if (x < 0 || x >= grid[0].length || y < 0 || y >= grid.length) {
-      return false;
+      return true; // Allow warping at edges
     }
     
     const cell = grid[y][x];
@@ -438,22 +454,29 @@ export class Ghost {
     
     // Filter out invalid moves and the opposite of current direction
     const validDirections = directions.filter(dir => {
-      if (dir === this.getOppositeDirection(this.direction)) {
+      if (dir === this.getOppositeDirection(this.direction) && this.state !== GhostState.FRIGHTENED) {
         return false;
       }
       
+      let nextX = x;
+      let nextY = y;
+      
       switch (dir) {
         case Direction.UP:
-          return this.isValidMove(x, y - 1, grid, canPassGhostDoor);
+          nextY -= 1;
+          break;
         case Direction.DOWN:
-          return this.isValidMove(x, y + 1, grid, canPassGhostDoor);
+          nextY += 1;
+          break;
         case Direction.LEFT:
-          return this.isValidMove(x - 1, y, grid, canPassGhostDoor);
+          nextX -= 1;
+          break;
         case Direction.RIGHT:
-          return this.isValidMove(x + 1, y, grid, canPassGhostDoor);
-        default:
-          return false;
+          nextX += 1;
+          break;
       }
+      
+      return this.isValidMove(nextX, nextY, grid, canPassGhostDoor);
     });
     
     if (validDirections.length === 0) {
@@ -532,11 +555,9 @@ export class Ghost {
         let offsetY = playerPos.y;
         
         // Calculate offset based on player direction
-        // In the original game, there was a bug where UP direction would also
-        // apply an offset to the left, we're recreating that bug here
         switch (this.direction) {
           case Direction.UP:
-            offsetX -= 4; // The -4 here is the famous Pac-Man bug
+            offsetX -= 4; // The -4 here simulates the famous Pac-Man bug
             offsetY -= 4;
             break;
           case Direction.DOWN:
@@ -562,7 +583,7 @@ export class Ghost {
         
         switch (this.direction) {
           case Direction.UP:
-            intermediateX -= 2; // Recreating the bug
+            intermediateX -= 2; // Simulate the bug
             intermediateY -= 2;
             break;
           case Direction.DOWN:
@@ -576,9 +597,8 @@ export class Ghost {
             break;
         }
         
-        // Now, calculate the vector from Blinky to this position and double it
-        // Assume Blinky is always at its starting position for simplicity
-        const blinkyX = 14;
+        // Use Blinky's position for the calculation
+        const blinkyX = 14; // Using a fixed position for simplicity
         const blinkyY = 11;
         
         this.targetX = intermediateX + (intermediateX - blinkyX);

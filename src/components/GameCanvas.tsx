@@ -130,7 +130,7 @@ const GameCanvas: React.FC = () => {
     // Initialize player at exact center position with explicit updated Y
     player.current = new Player(PLAYER_START_X, PLAYER_START_Y);
     
-    // Initialize ghosts at specific positions and ensure they're ready to leave
+    // Initialize ghosts at specific positions with staggered exit timing
     ghosts.current = [
       new Ghost(GhostType.BLINKY, 14, 11),  // Blinky - red ghost starts at top
       new Ghost(GhostType.PINKY, 14, 14),   // Pinky - pink ghost starts in center
@@ -138,10 +138,31 @@ const GameCanvas: React.FC = () => {
       new Ghost(GhostType.CLYDE, 16, 14)    // Clyde - orange ghost starts right
     ];
     
-    // Make all ghosts ready to leave immediately (no waiting)
-    ghosts.current.forEach((ghost) => {
+    // Set different states for the ghosts to stagger their exits
+    ghosts.current.forEach((ghost, index) => {
       ghost.readyToLeave = true;
-      ghost.setState(GhostState.CHASE);
+      
+      // Stagger ghost exits by giving them different states initially
+      switch (index) {
+        case 0: // Blinky - Already outside, shouldn't go through exit routine
+          ghost.setState(GhostState.CHASE);
+          ghost.isLeavingGhostHouse = false;
+          break;
+        case 1: // Pinky - First to leave
+          ghost.setState(GhostState.CHASE);
+          ghost.isLeavingGhostHouse = true;
+          break;
+        case 2: // Inky - Second to leave
+          ghost.setState(GhostState.CHASE);
+          ghost.isLeavingGhostHouse = true;
+          ghost.nextLeaveStep = 0;
+          break;
+        case 3: // Clyde - Last to leave
+          ghost.setState(GhostState.CHASE);
+          ghost.isLeavingGhostHouse = true;
+          ghost.nextLeaveStep = 0;
+          break;
+      }
     });
     
     gameBoard.current = JSON.parse(JSON.stringify(mazeLayout));
@@ -162,12 +183,13 @@ const GameCanvas: React.FC = () => {
     
     // Debug logs to verify player position
     console.log("Player reset position:", player.current.x, player.current.y);
+    console.log("Ghosts reset: ", ghosts.current.map(g => `Ghost ${g.type} at (${g.x}, ${g.y})`));
   };
   
   const resetLevel = () => {
     player.current = new Player(PLAYER_START_X, PLAYER_START_Y);
     
-    // Reset ghosts with the same positioning as game start
+    // Reset ghosts with staggered timing
     ghosts.current = [
       new Ghost(GhostType.BLINKY, 14, 11),
       new Ghost(GhostType.PINKY, 14, 14),
@@ -175,10 +197,31 @@ const GameCanvas: React.FC = () => {
       new Ghost(GhostType.CLYDE, 16, 14)
     ];
     
-    // Make all ghosts ready to leave immediately
-    ghosts.current.forEach((ghost) => {
+    // Set different states for the ghosts to stagger their exits
+    ghosts.current.forEach((ghost, index) => {
       ghost.readyToLeave = true;
-      ghost.setState(GhostState.CHASE);
+      
+      // Stagger ghost exits by giving them different states initially
+      switch (index) {
+        case 0: // Blinky - Already outside, shouldn't go through exit routine
+          ghost.setState(GhostState.CHASE);
+          ghost.isLeavingGhostHouse = false;
+          break;
+        case 1: // Pinky - First to leave
+          ghost.setState(GhostState.CHASE);
+          ghost.isLeavingGhostHouse = true;
+          break;
+        case 2: // Inky - Second to leave
+          ghost.setState(GhostState.CHASE);
+          ghost.isLeavingGhostHouse = true;
+          ghost.nextLeaveStep = 0;
+          break;
+        case 3: // Clyde - Last to leave
+          ghost.setState(GhostState.CHASE);
+          ghost.isLeavingGhostHouse = true;
+          ghost.nextLeaveStep = 0;
+          break;
+      }
     });
     
     lastDirection.current = Direction.NONE;
@@ -186,6 +229,7 @@ const GameCanvas: React.FC = () => {
     
     // Debug logs to verify player position
     console.log("Level reset position:", player.current.x, player.current.y);
+    console.log("Ghosts reset: ", ghosts.current.map(g => `Ghost ${g.type} at (${g.x}, ${g.y})`));
   };
   
   const activatePowerMode = () => {
@@ -744,25 +788,4 @@ const GameCanvas: React.FC = () => {
               <button
                 onTouchStart={() => handleTouchStart(Direction.RIGHT)}
                 className="w-16 h-16 bg-primary rounded-full shadow-lg flex items-center justify-center text-white text-3xl"
-                aria-label="Move Right"
-              >
-                D
-              </button>
-            </div>
-            <div className="col-start-2 row-start-3">
-              <button
-                onTouchStart={() => handleTouchStart(Direction.DOWN)}
-                className="w-16 h-16 bg-primary rounded-full shadow-lg flex items-center justify-center text-white text-3xl"
-                aria-label="Move Down"
-              >
-                S
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-export default GameCanvas;
+                aria-label="
