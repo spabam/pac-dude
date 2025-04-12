@@ -10,14 +10,14 @@ export const CELL_SIZE = 16;
 
 // Game mechanics
 export const PLAYER_SPEED = 8; // Increased from 6 to 8 for faster movement
-export const GHOST_SPEED = 5; // Increased back to 5 for more reliable movement
-export const GHOST_FRIGHTENED_SPEED = 3; // Increased slightly for more reliable movement
-export const GHOST_TUNNEL_SPEED = 3; // Increased slightly for more reliable movement
-export const GHOST_RANDOM_DIRECTION_CHANGE = 800; // Reduced from 1000 ms to be more responsive
+export const GHOST_SPEED = 6; // Increased from 5 to 6 for more consistent movement
+export const GHOST_FRIGHTENED_SPEED = 4; // Increased from 3 to 4 for more reliable movement
+export const GHOST_TUNNEL_SPEED = 4; // Increased from 3 to 4 for more reliable movement
+export const GHOST_RANDOM_DIRECTION_CHANGE = 500; // Reduced from 800 to 500 for more dynamic movement
 
 // Ghost movement thresholds
-export const INTERSECTION_THRESHOLD = 0.2; // Increased threshold for more reliable intersection detection
-export const POSITION_RESET_THRESHOLD = 1000; // ms - reset ghost position if stuck
+export const INTERSECTION_THRESHOLD = 0.1; // Reduced for more precise intersection detection
+export const POSITION_RESET_THRESHOLD = 500; // Reduced from 1000 ms to reset ghost position quicker if stuck
 
 // Scoring
 export const DOT_POINTS = 10;
@@ -28,7 +28,7 @@ export const GHOST_COMBO_MULTIPLIER = 2;
 // Timers
 export const POWER_PELLET_DURATION = 8000; // 8 seconds
 export const GHOST_FLASH_DURATION = 2000; // 2 seconds before power mode ends
-export const GHOST_HOUSE_TIME = 500; // Reduced further for quicker ghost release
+export const GHOST_HOUSE_TIME = 200; // Reduced further for quicker ghost release
 
 // Enums
 export const enum Direction {

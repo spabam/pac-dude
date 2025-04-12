@@ -1,3 +1,4 @@
+
 import { 
   Direction, 
   GhostType, 
@@ -141,18 +142,18 @@ export class Ghost {
     const moveDistance = moveSpeed * deltaTime;
     
     // Check if ghost is stuck by comparing current position with last recorded position
-    if (currentTime - this.lastPositionTime > 300) { // Check every 300ms
+    if (currentTime - this.lastPositionTime > 200) { // Check every 200ms (reduced from 300ms)
       const distanceMoved = Math.sqrt(
         Math.pow(this.x - this.lastPosition.x, 2) + 
         Math.pow(this.y - this.lastPosition.y, 2)
       );
       
       // If ghost hasn't moved much in the last check interval
-      if (distanceMoved < 0.1) {
+      if (distanceMoved < 0.05) { // More sensitive threshold (reduced from 0.1)
         this.stuckCounter++;
         
         // If ghost has been stuck for several checks, nudge it
-        if (this.stuckCounter >= 3) {
+        if (this.stuckCounter >= 2) { // Reduced from 3 for faster recovery
           // If in ghost house, force it to start leaving
           if (this.y >= 13 && this.y <= 15 && this.x >= 11.5 && this.x <= 16.5) {
             this.isLeavingGhostHouse = true;
@@ -163,10 +164,29 @@ export class Ghost {
             this.direction = this.chooseRandomDirection(grid);
             
             // If still stuck, try to snap to a grid center
-            if (this.stuckCounter >= 5) {
+            if (this.stuckCounter >= 3) { // Reduced from 5 for faster recovery
               this.x = Math.floor(this.x) + 0.5;
               this.y = Math.floor(this.y) + 0.5;
               this.stuckCounter = 0;
+              
+              // Force a more aggressive random direction
+              const availableDirections: Direction[] = [];
+              if (this.isValidMove(Math.floor(this.x), Math.floor(this.y) - 1, grid, false)) {
+                availableDirections.push(Direction.UP);
+              }
+              if (this.isValidMove(Math.floor(this.x), Math.floor(this.y) + 1, grid, false)) {
+                availableDirections.push(Direction.DOWN);
+              }
+              if (this.isValidMove(Math.floor(this.x) - 1, Math.floor(this.y), grid, false)) {
+                availableDirections.push(Direction.LEFT);
+              }
+              if (this.isValidMove(Math.floor(this.x) + 1, Math.floor(this.y), grid, false)) {
+                availableDirections.push(Direction.RIGHT);
+              }
+              
+              if (availableDirections.length > 0) {
+                this.direction = availableDirections[Math.floor(Math.random() * availableDirections.length)];
+              }
             }
           }
         }
@@ -265,10 +285,10 @@ export class Ghost {
         if (Math.abs(this.x - 14) > 0.1) {
           if (this.x < 14) {
             this.direction = Direction.RIGHT;
-            this.x += moveDistance * 1.5; // Move faster for more reliable exit
+            this.x += moveDistance * 2.0; // Increased speed for more reliable exit
           } else {
             this.direction = Direction.LEFT;
-            this.x -= moveDistance * 1.5;
+            this.x -= moveDistance * 2.0;
           }
         } else {
           // Snap to exact position and move to next step
@@ -281,10 +301,10 @@ export class Ghost {
         if (Math.abs(this.y - 13) > 0.1) {
           if (this.y < 13) {
             this.direction = Direction.DOWN;
-            this.y += moveDistance * 1.5;
+            this.y += moveDistance * 2.0; // Increased speed for more reliable exit
           } else {
             this.direction = Direction.UP;
-            this.y -= moveDistance * 1.5;
+            this.y -= moveDistance * 2.0;
           }
         } else {
           // Snap to exact position and move to next step
@@ -295,7 +315,7 @@ export class Ghost {
         
       case 2: // Step 3: Move up to exit ghost house
         this.direction = Direction.UP;
-        this.y -= moveDistance * 2.5; // Boost speed even more to ensure movement
+        this.y -= moveDistance * 3.5; // Increased boost speed even more to ensure movement
         
         // When we reach position y=11, we're out of the ghost house
         if (this.y <= 11.5) {
@@ -356,7 +376,12 @@ export class Ghost {
         return;
       }
       
-      // Don't update position
+      // Don't update position, but snap to grid to avoid getting stuck
+      this.x = Math.floor(this.x) + 0.5;
+      this.y = Math.floor(this.y) + 0.5;
+      
+      // Force a direction change
+      this.direction = this.chooseNextDirection(grid);
       return;
     }
     
@@ -370,7 +395,7 @@ export class Ghost {
     let nextX = this.x;
     let nextY = this.y;
     
-    const reducedMoveDistance = moveDistance * 0.5; // Use half the original distance
+    const reducedMoveDistance = moveDistance * 0.75; // Increased from 0.5 for more reliable movement
     
     switch (this.direction) {
       case Direction.UP:
@@ -394,6 +419,29 @@ export class Ghost {
     if (this.isValidMove(nextCellX, nextCellY, grid, this.state === GhostState.EATEN)) {
       this.x = nextX;
       this.y = nextY;
+    } else {
+      // If we're still stuck, force a snap to grid and try a completely different direction
+      this.x = Math.floor(this.x) + 0.5;
+      this.y = Math.floor(this.y) + 0.5;
+      
+      // Force a different direction that's valid
+      const availableDirections: Direction[] = [];
+      if (this.isValidMove(Math.floor(this.x), Math.floor(this.y) - 1, grid, this.state === GhostState.EATEN)) {
+        availableDirections.push(Direction.UP);
+      }
+      if (this.isValidMove(Math.floor(this.x), Math.floor(this.y) + 1, grid, this.state === GhostState.EATEN)) {
+        availableDirections.push(Direction.DOWN);
+      }
+      if (this.isValidMove(Math.floor(this.x) - 1, Math.floor(this.y), grid, this.state === GhostState.EATEN)) {
+        availableDirections.push(Direction.LEFT);
+      }
+      if (this.isValidMove(Math.floor(this.x) + 1, Math.floor(this.y), grid, this.state === GhostState.EATEN)) {
+        availableDirections.push(Direction.RIGHT);
+      }
+      
+      if (availableDirections.length > 0) {
+        this.direction = availableDirections[Math.floor(Math.random() * availableDirections.length)];
+      }
     }
   }
   
@@ -423,7 +471,7 @@ export class Ghost {
     
     // If no valid directions other than going back, allow reverse direction
     if (availableDirections.length === 0) {
-      availableDirections.push(oppositeDirection);
+      return oppositeDirection;
     }
     
     // Return random direction from available options
@@ -721,7 +769,7 @@ export class Ghost {
         this.speed = GHOST_SPEED * 1.5;
         break;
       case GhostState.RANDOM:
-        this.speed = GHOST_SPEED * 0.8; // Random ghosts move a bit slower
+        this.speed = GHOST_SPEED * 0.9; // Increased from 0.8 for more reliable movement
         break;
       default:
         this.speed = GHOST_SPEED;
