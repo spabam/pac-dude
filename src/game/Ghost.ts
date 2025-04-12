@@ -1,4 +1,3 @@
-
 import { 
   Direction, 
   GhostType, 
@@ -104,7 +103,6 @@ export class Ghost {
     }
   }
   
-  // Update ghost state and movement
   update(
     deltaTime: number, 
     grid: number[][], 
@@ -252,7 +250,6 @@ export class Ghost {
     }
   }
   
-  // Simplified ghost house exit logic
   handleGhostHouseExit(moveDistance: number) {
     console.log(`Ghost ${this.type} exiting ghost house, step: ${this.nextLeaveStep}, position: (${this.x}, ${this.y})`);
     
@@ -316,7 +313,6 @@ export class Ghost {
     }
   }
   
-  // Move ghost based on current direction
   moveInDirection(moveDistance: number, grid: number[][]) {
     // Check if the next cell is valid
     let nextX = this.x;
@@ -369,7 +365,6 @@ export class Ghost {
     this.y = nextY;
   }
   
-  // New method to handle movement after collision
   moveInDirectionAfterCollision(moveDistance: number, grid: number[][]) {
     // Apply reduced movement in the new direction to avoid getting stuck
     let nextX = this.x;
@@ -402,7 +397,6 @@ export class Ghost {
     }
   }
   
-  // Choose a random direction from available directions
   chooseRandomDirection(grid: number[][]): Direction {
     const x = Math.floor(this.x);
     const y = Math.floor(this.y);
@@ -436,7 +430,6 @@ export class Ghost {
     return availableDirections[Math.floor(Math.random() * availableDirections.length)];
   }
   
-  // Choose the next direction based on available paths and target
   chooseNextDirection(grid: number[][]): Direction {
     const x = Math.floor(this.x);
     const y = Math.floor(this.y);
@@ -492,7 +485,6 @@ export class Ghost {
     );
   }
   
-  // Check if a move is valid
   isValidMove(x: number, y: number, grid: number[][], canPassGhostDoor: boolean): boolean {
     // Check grid bounds
     if (x < 0 || x >= grid[0].length || y < 0 || y >= grid.length) {
@@ -510,7 +502,6 @@ export class Ghost {
     return cell !== CellType.WALL;
   }
   
-  // Get opposite direction
   getOppositeDirection(direction: Direction): Direction {
     switch (direction) {
       case Direction.UP:
@@ -526,7 +517,6 @@ export class Ghost {
     }
   }
   
-  // Calculate best direction to reach target
   getDirectionToTarget(
     x: number, 
     y: number, 
@@ -610,7 +600,6 @@ export class Ghost {
     return distances[0].direction;
   }
   
-  // Update target based on ghost type and state
   updateTarget(playerPos: Position) {
     // If eaten, target is the ghost house
     if (this.state === GhostState.EATEN) {
@@ -715,7 +704,6 @@ export class Ghost {
     }
   }
   
-  // Set ghost state
   setState(state: GhostState) {
     this.state = state;
     
