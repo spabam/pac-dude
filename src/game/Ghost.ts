@@ -1,3 +1,4 @@
+
 import { 
   Direction, 
   GhostType, 
@@ -129,7 +130,30 @@ export class Ghost {
       this.state === GhostState.RANDOM && 
       (currentTime - this.lastRandomDirectionChange) > GHOST_RANDOM_DIRECTION_CHANGE;
       
-    if (isAtIntersection || shouldChangeRandomDirection) {
+    // Force initial movement out of ghost house
+    const isInGhostHouse = 
+      Math.floor(this.y) >= 13 && Math.floor(this.y) <= 15 &&
+      Math.floor(this.x) >= 11 && Math.floor(this.x) <= 16;
+    
+    if (isInGhostHouse && this.readyToLeave) {
+      // If in ghost house, prioritize moving up to exit
+      // First, move to the ghost door position if not already there
+      if (Math.floor(this.y) !== 13 || Math.floor(this.x) !== 14) {
+        // Move towards the ghost door at (14, 13)
+        this.direction = this.getDirectionToTarget(
+          Math.floor(this.x),
+          Math.floor(this.y),
+          14,
+          13,
+          grid,
+          true // Can pass through ghost house door
+        );
+      } else {
+        // At the door, now move up to exit
+        this.direction = Direction.UP;
+      }
+    }
+    else if (isAtIntersection || shouldChangeRandomDirection) {
       // If at intersection, snap to grid center for precision
       if (isAtIntersection) {
         this.x = Math.floor(this.x) + 0.5;
@@ -194,8 +218,12 @@ export class Ghost {
         break;
     }
     
-    // Check if the next cell is valid (ghosts can pass ghost doors when eaten)
-    const canPassGhostDoor = this.state === GhostState.EATEN || this.readyToLeave;
+    // Determine if the ghost can pass through ghost doors
+    const canPassGhostDoor = this.state === GhostState.EATEN || 
+                            this.readyToLeave || 
+                            isInGhostHouse;
+                            
+    // Check if the next cell is valid
     if (this.isValidMove(nextX, nextY, grid, canPassGhostDoor)) {
       // Move ghost based on current direction
       switch (this.direction) {
@@ -215,7 +243,9 @@ export class Ghost {
       
       // Once ghost moves out of ghost house area, it can't pass ghost doors anymore
       // unless it's in EATEN state
-      if (grid[Math.floor(this.y)][Math.floor(this.x)] !== CellType.GHOST_DOOR) {
+      if (grid[Math.floor(this.y)] && 
+          grid[Math.floor(this.y)][Math.floor(this.x)] !== CellType.GHOST_DOOR &&
+          !isInGhostHouse) {
         this.readyToLeave = false;
       }
     } else if (isAtIntersection) {
