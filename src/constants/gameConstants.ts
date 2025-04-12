@@ -10,10 +10,14 @@ export const CELL_SIZE = 16;
 
 // Game mechanics
 export const PLAYER_SPEED = 8; // Increased from 6 to 8 for faster movement
-export const GHOST_SPEED = 4; // Reduced from 5 to 4 for slower ghost movement
-export const GHOST_FRIGHTENED_SPEED = 2; // Reduced from 2.5 to 2
-export const GHOST_TUNNEL_SPEED = 2; // Reduced from 2.5 to 2
-export const GHOST_RANDOM_DIRECTION_CHANGE = 1000; // ms
+export const GHOST_SPEED = 5; // Increased back to 5 for more reliable movement
+export const GHOST_FRIGHTENED_SPEED = 3; // Increased slightly for more reliable movement
+export const GHOST_TUNNEL_SPEED = 3; // Increased slightly for more reliable movement
+export const GHOST_RANDOM_DIRECTION_CHANGE = 800; // Reduced from 1000 ms to be more responsive
+
+// Ghost movement thresholds
+export const INTERSECTION_THRESHOLD = 0.2; // Increased threshold for more reliable intersection detection
+export const POSITION_RESET_THRESHOLD = 1000; // ms - reset ghost position if stuck
 
 // Scoring
 export const DOT_POINTS = 10;

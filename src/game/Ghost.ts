@@ -1,3 +1,4 @@
+
 import { 
   Direction, 
   GhostType, 
@@ -7,7 +8,9 @@ import {
   GHOST_FRIGHTENED_SPEED,
   GHOST_TUNNEL_SPEED,
   GHOST_RANDOM_DIRECTION_CHANGE,
-  GHOST_HOUSE_TIME
+  GHOST_HOUSE_TIME,
+  INTERSECTION_THRESHOLD,
+  POSITION_RESET_THRESHOLD
 } from '../constants/gameConstants';
 
 interface Position {
@@ -33,6 +36,9 @@ export class Ghost {
   respawnTimer: number | null;
   isLeavingGhostHouse: boolean;
   nextLeaveStep: number;
+  lastPosition: Position;
+  lastPositionTime: number;
+  stuckCounter: number;
 
   constructor(type: GhostType, x: number, y: number) {
     this.type = type;
@@ -53,6 +59,11 @@ export class Ghost {
     this.respawnTimer = null;
     this.isLeavingGhostHouse = false;
     this.nextLeaveStep = 0;
+    
+    // Add stuck detection properties
+    this.lastPosition = { x: this.x, y: this.y };
+    this.lastPositionTime = Date.now();
+    this.stuckCounter = 0;
     
     // Set scatter targets based on ghost type (corners of the map)
     switch (type) {
@@ -131,6 +142,45 @@ export class Ghost {
     
     const moveDistance = moveSpeed * deltaTime;
     
+    // Check if ghost is stuck by comparing current position with last recorded position
+    if (currentTime - this.lastPositionTime > 300) { // Check every 300ms
+      const distanceMoved = Math.sqrt(
+        Math.pow(this.x - this.lastPosition.x, 2) + 
+        Math.pow(this.y - this.lastPosition.y, 2)
+      );
+      
+      // If ghost hasn't moved much in the last check interval
+      if (distanceMoved < 0.1) {
+        this.stuckCounter++;
+        
+        // If ghost has been stuck for several checks, nudge it
+        if (this.stuckCounter >= 3) {
+          // If in ghost house, force it to start leaving
+          if (this.y >= 13 && this.y <= 15 && this.x >= 11.5 && this.x <= 16.5) {
+            this.isLeavingGhostHouse = true;
+            this.readyToLeave = true;
+            this.nextLeaveStep = 0;
+          } else {
+            // Force a random direction change to unstick the ghost
+            this.direction = this.chooseRandomDirection(grid);
+            
+            // If still stuck, try to snap to a grid center
+            if (this.stuckCounter >= 5) {
+              this.x = Math.floor(this.x) + 0.5;
+              this.y = Math.floor(this.y) + 0.5;
+              this.stuckCounter = 0;
+            }
+          }
+        }
+      } else {
+        this.stuckCounter = 0;
+      }
+      
+      // Update last position for next check
+      this.lastPosition = { x: this.x, y: this.y };
+      this.lastPositionTime = currentTime;
+    }
+    
     // Simple ghost house check
     const isInGhostHouse = 
       this.y >= 13 && this.y <= 15 &&
@@ -144,8 +194,8 @@ export class Ghost {
     
     // Only change direction at grid intersections or when random timer expires for RANDOM state
     const isAtIntersection = 
-      Math.abs(this.x - Math.floor(this.x) - 0.5) < 0.1 && 
-      Math.abs(this.y - Math.floor(this.y) - 0.5) < 0.1;
+      Math.abs(this.x - Math.floor(this.x) - 0.5) < INTERSECTION_THRESHOLD && 
+      Math.abs(this.y - Math.floor(this.y) - 0.5) < INTERSECTION_THRESHOLD;
     
     const shouldChangeRandomDirection = 
       this.state === GhostState.RANDOM && 
@@ -212,16 +262,16 @@ export class Ghost {
       this.nextLeaveStep = 0;
     }
     
-    // Three step exit process
+    // Three step exit process with more aggressive movement
     switch (this.nextLeaveStep) {
       case 0: // Step 1: Move to center x position
         if (Math.abs(this.x - 14) > 0.1) {
           if (this.x < 14) {
             this.direction = Direction.RIGHT;
-            this.x += moveDistance;
+            this.x += moveDistance * 1.5; // Move faster for more reliable exit
           } else {
             this.direction = Direction.LEFT;
-            this.x -= moveDistance;
+            this.x -= moveDistance * 1.5;
           }
         } else {
           // Snap to exact position and move to next step
@@ -230,25 +280,25 @@ export class Ghost {
         }
         break;
         
-      case 1: // Step 2: Move to y position 14 (center of ghost house)
-        if (Math.abs(this.y - 14) > 0.1) {
-          if (this.y < 14) {
+      case 1: // Step 2: Move to y position just below the door
+        if (Math.abs(this.y - 13) > 0.1) {
+          if (this.y < 13) {
             this.direction = Direction.DOWN;
-            this.y += moveDistance;
+            this.y += moveDistance * 1.5;
           } else {
             this.direction = Direction.UP;
-            this.y -= moveDistance;
+            this.y -= moveDistance * 1.5;
           }
         } else {
           // Snap to exact position and move to next step
-          this.y = 14;
+          this.y = 13;
           this.nextLeaveStep = 2;
         }
         break;
         
       case 2: // Step 3: Move up to exit ghost house
         this.direction = Direction.UP;
-        this.y -= moveDistance * 2; // Double speed to ensure movement
+        this.y -= moveDistance * 2.5; // Boost speed even more to ensure movement
         
         // When we reach position y=11, we're out of the ghost house
         if (this.y <= 11.5) {
@@ -256,6 +306,9 @@ export class Ghost {
           this.y = 11.5;
           this.isLeavingGhostHouse = false;
           this.readyToLeave = false; // No longer needs special handling
+          
+          // Make sure the ghost immediately starts moving in a valid direction
+          this.direction = this.chooseNextDirection(grid);
           
           console.log(`Ghost ${this.type} has successfully exited ghost house at (${this.x}, ${this.y})`);
         }
@@ -291,8 +344,8 @@ export class Ghost {
     // If the next cell is a wall, stop at the current cell's boundary
     if (!this.isValidMove(nextCellX, nextCellY, grid, this.state === GhostState.EATEN)) {
       const isAtIntersection = 
-        Math.abs(this.x - Math.floor(this.x) - 0.5) < 0.1 && 
-        Math.abs(this.y - Math.floor(this.y) - 0.5) < 0.1;
+        Math.abs(this.x - Math.floor(this.x) - 0.5) < INTERSECTION_THRESHOLD && 
+        Math.abs(this.y - Math.floor(this.y) - 0.5) < INTERSECTION_THRESHOLD;
       
       if (isAtIntersection) {
         // We're at an intersection and hit a wall, choose a new direction
@@ -301,6 +354,10 @@ export class Ghost {
         } else {
           this.direction = this.chooseNextDirection(grid);
         }
+        
+        // After choosing a new direction, try moving again
+        this.moveInDirectionAfterCollision(moveDistance, grid);
+        return;
       }
       
       // Don't update position
@@ -310,6 +367,39 @@ export class Ghost {
     // If move is valid, update position
     this.x = nextX;
     this.y = nextY;
+  }
+  
+  // New method to handle movement after collision
+  moveInDirectionAfterCollision(moveDistance: number, grid: number[][]) {
+    // Apply reduced movement in the new direction to avoid getting stuck
+    let nextX = this.x;
+    let nextY = this.y;
+    
+    const reducedMoveDistance = moveDistance * 0.5; // Use half the original distance
+    
+    switch (this.direction) {
+      case Direction.UP:
+        nextY -= reducedMoveDistance;
+        break;
+      case Direction.DOWN:
+        nextY += reducedMoveDistance;
+        break;
+      case Direction.LEFT:
+        nextX -= reducedMoveDistance;
+        break;
+      case Direction.RIGHT:
+        nextX += reducedMoveDistance;
+        break;
+    }
+    
+    // Only update position if the move is valid
+    const nextCellX = Math.floor(nextX);
+    const nextCellY = Math.floor(nextY);
+    
+    if (this.isValidMove(nextCellX, nextCellY, grid, this.state === GhostState.EATEN)) {
+      this.x = nextX;
+      this.y = nextY;
+    }
   }
   
   // Choose a random direction from available directions
