@@ -65,7 +65,9 @@ export const stepTowards = (
   const start = key(wrapX(Math.floor(fromX)), Math.floor(fromY));
   const goal = key(wrapX(Math.floor(toX)), Math.floor(toY));
   const firstStep = new Map<number, Direction>([[start, Direction.NONE]]);
-  const queue: Array<{ x: number; y: number }> = [{ x: wrapX(fromX), y: fromY }];
+  const queue: Array<{ x: number; y: number }> = [
+    { x: wrapX(Math.floor(fromX)), y: Math.floor(fromY) },
+  ];
 
   while (queue.length) {
     const current = queue.shift()!;
