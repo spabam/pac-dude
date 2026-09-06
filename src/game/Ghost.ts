@@ -1,807 +1,150 @@
-import { 
-  Direction, 
-  GhostType, 
-  GhostState,
-  CellType,
-  GHOST_SPEED,
+import {
+  CHASE_MODE_START_LEVEL,
+  Direction,
+  GHOST_EATEN_SPEED,
   GHOST_FRIGHTENED_SPEED,
+  GHOST_SPEED,
   GHOST_TUNNEL_SPEED,
-  GHOST_RANDOM_DIRECTION_CHANGE,
-  GHOST_HOUSE_TIME,
-  INTERSECTION_THRESHOLD,
-  POSITION_RESET_THRESHOLD,
-  CHASE_MODE_START_LEVEL
+  GHOST_RESPAWN_TIME,
+  GhostMode,
+  GhostType,
+  HOUSE_CENTER_X,
+  HOUSE_CENTER_Y,
+  HOUSE_EXIT_X,
+  HOUSE_EXIT_Y,
 } from '../constants/gameConstants';
+import { Actor } from './Actor';
+import { Board, DELTA, DIRECTIONS, isWalkable, opposite, stepTowards } from './maze';
 
-interface Position {
+interface Point {
   x: number;
   y: number;
 }
 
-export class Ghost {
-  type: GhostType;
-  x: number;
-  y: number;
-  direction: Direction;
-  state: GhostState;
-  speed: number;
-  targetX: number;
-  targetY: number;
-  scatterTargetX: number;
-  scatterTargetY: number;
-  homeX: number;
-  homeY: number;
-  lastRandomDirectionChange: number;
-  readyToLeave: boolean;
-  respawnTimer: number | null;
-  isLeavingGhostHouse: boolean;
-  nextLeaveStep: number;
-  lastPosition: Position;
-  lastPositionTime: number;
-  stuckCounter: number;
+const SCATTER_TARGETS: Record<GhostType, Point> = {
+  [GhostType.BLINKY]: { x: 26, y: 1 },
+  [GhostType.PINKY]: { x: 1, y: 1 },
+  [GhostType.INKY]: { x: 26, y: 29 },
+  [GhostType.CLYDE]: { x: 1, y: 29 },
+};
 
-  constructor(type: GhostType, x: number, y: number) {
-    this.type = type;
-    this.x = Math.floor(x) + 0.5; // Ensure ghost starts centered in cell
-    this.y = Math.floor(y) + 0.5;
-    this.direction = this.getInitialDirection(type);
-    
-    // Set all ghosts to RANDOM state initially for early levels
-    this.state = GhostState.RANDOM;
-    
-    this.speed = GHOST_SPEED;
-    this.targetX = 0;
-    this.targetY = 0;
-    this.homeX = x;
-    this.homeY = y;
-    this.lastRandomDirectionChange = 0;
-    this.readyToLeave = true; // Start ghosts ready to leave
-    this.respawnTimer = null;
-    this.isLeavingGhostHouse = false;
-    this.nextLeaveStep = 0;
-    
-    // Add stuck detection properties
-    this.lastPosition = { x: this.x, y: this.y };
-    this.lastPositionTime = Date.now();
-    this.stuckCounter = 0;
-    
-    // Set scatter targets based on ghost type (corners of the map)
-    switch (type) {
-      case GhostType.BLINKY:
-        this.scatterTargetX = 27;
-        this.scatterTargetY = 0;
-        // Blinky starts outside ghost house
-        if (y === 11) {
-          this.isLeavingGhostHouse = false;
-        }
-        break;
-      case GhostType.PINKY:
-        this.scatterTargetX = 0;
-        this.scatterTargetY = 0;
-        this.isLeavingGhostHouse = true;
-        break;
-      case GhostType.INKY:
-        this.scatterTargetX = 27;
-        this.scatterTargetY = 30;
-        this.isLeavingGhostHouse = true;
-        break;
-      case GhostType.CLYDE:
-        this.scatterTargetX = 0;
-        this.scatterTargetY = 30;
-        this.isLeavingGhostHouse = true;
-        break;
-    }
-  }
-  
-  getInitialDirection(type: GhostType): Direction {
-    // Different initial directions for different ghosts
-    switch (type) {
-      case GhostType.BLINKY: return Direction.LEFT;
-      case GhostType.PINKY: return Direction.DOWN;
-      case GhostType.INKY: return Direction.UP;
-      case GhostType.CLYDE: return Direction.RIGHT;
-      default: return Direction.UP;
-    }
-  }
-  
-  update(
-    deltaTime: number, 
-    grid: number[][], 
-    playerPos: Position,
-    powerMode: boolean,
-    currentTime: number = Date.now(),
-    currentLevel: number = 1
+export class Ghost extends Actor {
+  mode: GhostMode;
+  frightened = false;
+  /** Timestamp (ms) from which the ghost may leave the house. */
+  releaseAt: number;
+
+  constructor(
+    public type: GhostType,
+    private spawnX: number,
+    private spawnY: number,
+    releaseDelay: number,
+    startOutside = false
   ) {
-    // Check if ghost is respawning from being eaten
-    if (this.state === GhostState.EATEN && this.respawnTimer !== null) {
-      if (currentTime >= this.respawnTimer) {
-        // Ghost has waited long enough, allow it to leave the house
-        this.respawnTimer = null;
-        
-        // Set state based on current level - only chase on level 4+
-        if (currentLevel >= CHASE_MODE_START_LEVEL && !powerMode) {
-          this.state = GhostState.CHASE;
-        } else if (powerMode) {
-          this.state = GhostState.FRIGHTENED;
-        } else {
-          this.state = GhostState.RANDOM;
-        }
-        
-        this.readyToLeave = true;
-      }
-    }
-    
-    // Update ghost target based on state, type, and current level
-    this.updateTarget(playerPos, currentLevel);
-    
-    // Calculate how far to move based on speed and time
-    let moveSpeed = this.speed;
-    
-    // Adjust speed based on state
-    if (this.state === GhostState.FRIGHTENED) {
-      moveSpeed = GHOST_FRIGHTENED_SPEED;
-    } else if (this.state === GhostState.EATEN) {
-      moveSpeed = GHOST_SPEED * 1.5; // Eaten ghosts move faster to get home
-    }
-    
-    // Check if ghost is in tunnel (outer edges of the map)
-    if ((Math.floor(this.y) === 14) && (this.x < 5 || this.x > 22)) {
-      moveSpeed = GHOST_TUNNEL_SPEED;
-    }
-    
-    const moveDistance = moveSpeed * deltaTime;
-    
-    // Check if ghost is stuck by comparing current position with last recorded position
-    if (currentTime - this.lastPositionTime > 200) { // Check every 200ms (reduced from 300ms)
-      const distanceMoved = Math.sqrt(
-        Math.pow(this.x - this.lastPosition.x, 2) + 
-        Math.pow(this.y - this.lastPosition.y, 2)
-      );
-      
-      // If ghost hasn't moved much in the last check interval
-      if (distanceMoved < 0.05) { // More sensitive threshold (reduced from 0.1)
-        this.stuckCounter++;
-        
-        // If ghost has been stuck for several checks, nudge it
-        if (this.stuckCounter >= 2) { // Reduced from 3 for faster recovery
-          // If in ghost house, force it to start leaving
-          if (this.y >= 13 && this.y <= 15 && this.x >= 11.5 && this.x <= 16.5) {
-            this.isLeavingGhostHouse = true;
-            this.readyToLeave = true;
-            this.nextLeaveStep = 0;
-          } else {
-            // Force a random direction change to unstick the ghost
-            this.direction = this.chooseRandomDirection(grid);
-            
-            // If still stuck, try to snap to a grid center
-            if (this.stuckCounter >= 3) { // Reduced from 5 for faster recovery
-              this.x = Math.floor(this.x) + 0.5;
-              this.y = Math.floor(this.y) + 0.5;
-              this.stuckCounter = 0;
-              
-              // Force a more aggressive random direction
-              const availableDirections: Direction[] = [];
-              if (this.isValidMove(Math.floor(this.x), Math.floor(this.y) - 1, grid, false)) {
-                availableDirections.push(Direction.UP);
-              }
-              if (this.isValidMove(Math.floor(this.x), Math.floor(this.y) + 1, grid, false)) {
-                availableDirections.push(Direction.DOWN);
-              }
-              if (this.isValidMove(Math.floor(this.x) - 1, Math.floor(this.y), grid, false)) {
-                availableDirections.push(Direction.LEFT);
-              }
-              if (this.isValidMove(Math.floor(this.x) + 1, Math.floor(this.y), grid, false)) {
-                availableDirections.push(Direction.RIGHT);
-              }
-              
-              if (availableDirections.length > 0) {
-                this.direction = availableDirections[Math.floor(Math.random() * availableDirections.length)];
-              }
-            }
-          }
-        }
-      } else {
-        this.stuckCounter = 0;
-      }
-      
-      // Update last position for next check
-      this.lastPosition = { x: this.x, y: this.y };
-      this.lastPositionTime = currentTime;
-    }
-    
-    // Simple ghost house check
-    const isInGhostHouse = 
-      this.y >= 13 && this.y <= 15 &&
-      this.x >= 11.5 && this.x <= 16.5;
-    
-    // Simplified ghost house exit logic
-    if ((isInGhostHouse || this.isLeavingGhostHouse) && this.readyToLeave) {
-      this.handleGhostHouseExit(moveDistance, grid);
-      return;
-    }
-    
-    // Only change direction at grid intersections or when random timer expires for RANDOM state
-    const isAtIntersection = 
-      Math.abs(this.x - Math.floor(this.x) - 0.5) < INTERSECTION_THRESHOLD && 
-      Math.abs(this.y - Math.floor(this.y) - 0.5) < INTERSECTION_THRESHOLD;
-    
-    const shouldChangeRandomDirection = 
-      this.state === GhostState.RANDOM && 
-      (currentTime - this.lastRandomDirectionChange) > GHOST_RANDOM_DIRECTION_CHANGE;
-    
-    if (!isInGhostHouse && (isAtIntersection || shouldChangeRandomDirection)) {
-      // If at intersection, snap to grid center for precision
-      if (isAtIntersection) {
-        this.x = Math.floor(this.x) + 0.5;
-        this.y = Math.floor(this.y) + 0.5;
-      }
-      
-      // Eaten ghosts should return to the ghost house
-      if (this.state === GhostState.EATEN) {
-        if (Math.abs(this.x - this.homeX) < 0.5 && Math.abs(this.y - this.homeY) < 0.5) {
-          // Ghost has reached home, start respawn timer
-          if (this.respawnTimer === null) {
-            this.respawnTimer = currentTime + GHOST_HOUSE_TIME;
-          }
-          this.x = this.homeX;
-          this.y = this.homeY;
-        } else {
-          // Move towards home
-          this.direction = this.getDirectionToTarget(
-            Math.floor(this.x), 
-            Math.floor(this.y), 
-            this.homeX, 
-            this.homeY, 
-            grid,
-            true // Can pass through ghost house door
-          );
-        }
-      } else {
-        // On lower levels (1-3), always move randomly regardless of state
-        if (currentLevel < CHASE_MODE_START_LEVEL || this.state === GhostState.RANDOM) {
-          this.direction = this.chooseRandomDirection(grid);
-          this.lastRandomDirectionChange = currentTime;
-        } else {
-          this.direction = this.chooseNextDirection(grid);
-        }
-      }
-    }
-    
-    // Regular movement logic for outside ghost house
-    if (!isInGhostHouse && !this.isLeavingGhostHouse) {
-      this.moveInDirection(moveDistance, grid);
-    }
-    
-    // Handle warping (teleporting from one side to another)
-    if (this.x < 0) {
-      this.x = 28; // Assuming grid width is 28
-    } else if (this.x >= 28) {
-      this.x = 0;
-    }
+    super(spawnX, spawnY, GHOST_SPEED);
+    this.mode = startOutside ? GhostMode.ROAM : GhostMode.HOUSE;
+    this.releaseAt = Date.now() + releaseDelay;
+    this.direction = Direction.LEFT;
   }
-  
-  handleGhostHouseExit(moveDistance: number, grid: number[][]) {
-    console.log(`Ghost ${this.type} exiting ghost house, step: ${this.nextLeaveStep}, position: (${this.x}, ${this.y})`);
-    
-    // If not officially in leaving mode yet, start it
-    if (!this.isLeavingGhostHouse) {
-      this.isLeavingGhostHouse = true;
-      this.nextLeaveStep = 0;
-    }
-    
-    // Three step exit process with more aggressive movement
-    switch (this.nextLeaveStep) {
-      case 0: // Step 1: Move to center x position
-        if (Math.abs(this.x - 14) > 0.1) {
-          if (this.x < 14) {
-            this.direction = Direction.RIGHT;
-            this.x += moveDistance * 2.0; // Increased speed for more reliable exit
-          } else {
-            this.direction = Direction.LEFT;
-            this.x -= moveDistance * 2.0;
-          }
-        } else {
-          // Snap to exact position and move to next step
-          this.x = 14;
-          this.nextLeaveStep = 1;
-        }
-        break;
-        
-      case 1: // Step 2: Move to y position just below the door
-        if (Math.abs(this.y - 13) > 0.1) {
-          if (this.y < 13) {
-            this.direction = Direction.DOWN;
-            this.y += moveDistance * 2.0; // Increased speed for more reliable exit
-          } else {
-            this.direction = Direction.UP;
-            this.y -= moveDistance * 2.0;
-          }
-        } else {
-          // Snap to exact position and move to next step
-          this.y = 13;
-          this.nextLeaveStep = 2;
-        }
-        break;
-        
-      case 2: // Step 3: Move up to exit ghost house
-        this.direction = Direction.UP;
-        this.y -= moveDistance * 4.0; // Increased boost speed even more to ensure movement
-        
-        // When we reach position y=11, we're out of the ghost house
-        if (this.y <= 11.5) {
-          // Snap to exact exit position
-          this.y = 11.5;
-          this.isLeavingGhostHouse = false;
-          this.readyToLeave = false; // No longer needs special handling
-          
-          // Make sure the ghost immediately starts moving in a valid direction
-          // For lower levels, use random movement
-          if (grid) {
-            if (this.state === GhostState.RANDOM) {
-              this.direction = this.chooseRandomDirection(grid);
-            } else {
-              this.direction = this.chooseNextDirection(grid);
-            }
-          }
-        }
-        break;
-    }
+
+  respawn(releaseDelay: number, startOutside = false) {
+    this.reset(this.spawnX, this.spawnY, Direction.LEFT);
+    this.mode = startOutside ? GhostMode.ROAM : GhostMode.HOUSE;
+    this.frightened = false;
+    this.releaseAt = Date.now() + releaseDelay;
   }
-  
-  moveInDirection(moveDistance: number, grid: number[][]) {
-    // Check if the next cell is valid
-    let nextX = this.x;
-    let nextY = this.y;
-    
-    switch (this.direction) {
-      case Direction.UP:
-        nextY -= moveDistance;
-        break;
-      case Direction.DOWN:
-        nextY += moveDistance;
-        break;
-      case Direction.LEFT:
-        nextX -= moveDistance;
-        break;
-      case Direction.RIGHT:
-        nextX += moveDistance;
-        break;
-    }
-    
-    // Check if the ghost would hit a wall by moving
-    const nextCellX = Math.floor(nextX);
-    const nextCellY = Math.floor(nextY);
-    
-    // If the next cell is a wall, stop at the current cell's boundary
-    if (!this.isValidMove(nextCellX, nextCellY, grid, this.state === GhostState.EATEN)) {
-      const isAtIntersection = 
-        Math.abs(this.x - Math.floor(this.x) - 0.5) < INTERSECTION_THRESHOLD && 
-        Math.abs(this.y - Math.floor(this.y) - 0.5) < INTERSECTION_THRESHOLD;
-      
-      if (isAtIntersection) {
-        // We're at an intersection and hit a wall, choose a new direction
-        if (this.state === GhostState.RANDOM) {
-          this.direction = this.chooseRandomDirection(grid);
-        } else {
-          this.direction = this.chooseNextDirection(grid);
-        }
-        
-        // After choosing a new direction, try moving again
-        this.moveInDirectionAfterCollision(moveDistance, grid);
-        return;
-      }
-      
-      // Don't update position, but snap to grid to avoid getting stuck
-      this.x = Math.floor(this.x) + 0.5;
-      this.y = Math.floor(this.y) + 0.5;
-      
-      // Force a direction change
-      this.direction = this.chooseNextDirection(grid);
-      return;
-    }
-    
-    // If move is valid, update position
-    this.x = nextX;
-    this.y = nextY;
+
+  getEaten(now: number) {
+    this.mode = GhostMode.EATEN;
+    this.frightened = false;
+    this.releaseAt = now + GHOST_RESPAWN_TIME;
   }
-  
-  moveInDirectionAfterCollision(moveDistance: number, grid: number[][]) {
-    // Apply reduced movement in the new direction to avoid getting stuck
-    let nextX = this.x;
-    let nextY = this.y;
-    
-    const reducedMoveDistance = moveDistance * 0.75; // Increased from 0.5 for more reliable movement
-    
-    switch (this.direction) {
-      case Direction.UP:
-        nextY -= reducedMoveDistance;
-        break;
-      case Direction.DOWN:
-        nextY += reducedMoveDistance;
-        break;
-      case Direction.LEFT:
-        nextX -= reducedMoveDistance;
-        break;
-      case Direction.RIGHT:
-        nextX += reducedMoveDistance;
-        break;
-    }
-    
-    // Only update position if the move is valid
-    const nextCellX = Math.floor(nextX);
-    const nextCellY = Math.floor(nextY);
-    
-    if (this.isValidMove(nextCellX, nextCellY, grid, this.state === GhostState.EATEN)) {
-      this.x = nextX;
-      this.y = nextY;
-    } else {
-      // If we're still stuck, force a snap to grid and try a completely different direction
-      this.x = Math.floor(this.x) + 0.5;
-      this.y = Math.floor(this.y) + 0.5;
-      
-      // Force a different direction that's valid
-      const availableDirections: Direction[] = [];
-      if (this.isValidMove(Math.floor(this.x), Math.floor(this.y) - 1, grid, this.state === GhostState.EATEN)) {
-        availableDirections.push(Direction.UP);
-      }
-      if (this.isValidMove(Math.floor(this.x), Math.floor(this.y) + 1, grid, this.state === GhostState.EATEN)) {
-        availableDirections.push(Direction.DOWN);
-      }
-      if (this.isValidMove(Math.floor(this.x) - 1, Math.floor(this.y), grid, this.state === GhostState.EATEN)) {
-        availableDirections.push(Direction.LEFT);
-      }
-      if (this.isValidMove(Math.floor(this.x) + 1, Math.floor(this.y), grid, this.state === GhostState.EATEN)) {
-        availableDirections.push(Direction.RIGHT);
-      }
-      
-      if (availableDirections.length > 0) {
-        this.direction = availableDirections[Math.floor(Math.random() * availableDirections.length)];
-      }
-    }
+
+  private currentSpeed(): number {
+    if (this.mode === GhostMode.EATEN) return GHOST_EATEN_SPEED;
+    if (this.frightened) return GHOST_FRIGHTENED_SPEED;
+    const inTunnel = this.tileY === 14 && (this.x < 5 || this.x > 22);
+    return inTunnel ? GHOST_TUNNEL_SPEED : GHOST_SPEED;
   }
-  
-  chooseRandomDirection(grid: number[][]): Direction {
-    const x = Math.floor(this.x);
-    const y = Math.floor(this.y);
-    
-    // Get available directions (excluding the opposite of current direction)
-    const oppositeDirection = this.getOppositeDirection(this.direction);
-    const availableDirections: Direction[] = [];
-    
-    if (this.isValidMove(x, y - 1, grid, this.state === GhostState.EATEN) && this.direction !== Direction.DOWN) {
-      availableDirections.push(Direction.UP);
+
+  update(deltaTime: number, board: Board, player: Point, level: number, now: number) {
+    // Eyes that made it home wait out their respawn timer.
+    if (
+      this.mode === GhostMode.EATEN &&
+      Math.abs(this.x - HOUSE_CENTER_X) < 0.5 &&
+      Math.abs(this.y - HOUSE_CENTER_Y) < 0.5
+    ) {
+      this.reset(HOUSE_CENTER_X, HOUSE_CENTER_Y, Direction.UP);
+      this.mode = GhostMode.HOUSE;
     }
-    
-    if (this.isValidMove(x, y + 1, grid, this.state === GhostState.EATEN) && this.direction !== Direction.UP) {
-      availableDirections.push(Direction.DOWN);
-    }
-    
-    if (this.isValidMove(x - 1, y, grid, this.state === GhostState.EATEN) && this.direction !== Direction.RIGHT) {
-      availableDirections.push(Direction.LEFT);
-    }
-    
-    if (this.isValidMove(x + 1, y, grid, this.state === GhostState.EATEN) && this.direction !== Direction.LEFT) {
-      availableDirections.push(Direction.RIGHT);
-    }
-    
-    // If no valid directions other than going back, allow reverse direction
-    if (availableDirections.length === 0) {
-      return oppositeDirection;
-    }
-    
-    // Return random direction from available options
-    return availableDirections[Math.floor(Math.random() * availableDirections.length)];
+
+    if (this.mode === GhostMode.HOUSE && now < this.releaseAt) return;
+
+    this.travel(this.currentSpeed() * deltaTime, () => {
+      if (this.mode === GhostMode.HOUSE) return this.stepOutOfHouse();
+      if (this.mode === GhostMode.EATEN) {
+        return stepTowards(board, this.tileX, this.tileY, HOUSE_CENTER_X, HOUSE_CENTER_Y, true);
+      }
+      return this.chooseDirection(board, player, level);
+    });
   }
-  
-  chooseNextDirection(grid: number[][]): Direction {
-    const x = Math.floor(this.x);
-    const y = Math.floor(this.y);
-    
-    // Ghosts cannot reverse direction (except when frightened)
-    const oppositeDirection = this.getOppositeDirection(this.direction);
-    
-    // Get available directions
-    const availableDirections: Direction[] = [];
-    
-    if (this.isValidMove(x, y - 1, grid, this.state === GhostState.EATEN)) {
-      if (this.direction !== Direction.DOWN || this.state === GhostState.FRIGHTENED) {
-        availableDirections.push(Direction.UP);
-      }
+
+  /** Slide to the door column, then rise through the door into the maze. */
+  private stepOutOfHouse(): Direction {
+    if (this.y <= HOUSE_EXIT_Y) {
+      this.mode = GhostMode.ROAM;
+      return Direction.LEFT;
     }
-    
-    if (this.isValidMove(x, y + 1, grid, this.state === GhostState.EATEN)) {
-      if (this.direction !== Direction.UP || this.state === GhostState.FRIGHTENED) {
-        availableDirections.push(Direction.DOWN);
-      }
+    if (Math.abs(this.x - HOUSE_EXIT_X) > 0.1) {
+      return this.x < HOUSE_EXIT_X ? Direction.RIGHT : Direction.LEFT;
     }
-    
-    if (this.isValidMove(x - 1, y, grid, this.state === GhostState.EATEN)) {
-      if (this.direction !== Direction.RIGHT || this.state === GhostState.FRIGHTENED) {
-        availableDirections.push(Direction.LEFT);
-      }
-    }
-    
-    if (this.isValidMove(x + 1, y, grid, this.state === GhostState.EATEN)) {
-      if (this.direction !== Direction.LEFT || this.state === GhostState.FRIGHTENED) {
-        availableDirections.push(Direction.RIGHT);
-      }
-    }
-    
-    // If no valid directions, allow reverse as a last resort
-    if (availableDirections.length === 0) {
-      return oppositeDirection;
-    }
-    
-    // If ghost is frightened, choose a random direction
-    if (this.state === GhostState.FRIGHTENED) {
-      return availableDirections[Math.floor(Math.random() * availableDirections.length)];
-    }
-    
-    // Otherwise, choose direction that gets closest to target
-    return this.getDirectionToTarget(
-      x, 
-      y, 
-      this.targetX, 
-      this.targetY, 
-      grid,
-      this.state === GhostState.EATEN
+    return Direction.UP;
+  }
+
+  private chooseDirection(board: Board, player: Point, level: number): Direction {
+    const options = DIRECTIONS.filter(
+      dir =>
+        dir !== opposite(this.direction) &&
+        isWalkable(board, this.tileX + DELTA[dir].x, this.tileY + DELTA[dir].y)
     );
+
+    // Dead end: the only way out is back the way we came.
+    if (options.length === 0) return opposite(this.direction);
+
+    // Early levels and power mode: wander instead of hunting.
+    if (this.frightened || level < CHASE_MODE_START_LEVEL) {
+      return options[Math.floor(Math.random() * options.length)];
+    }
+
+    const target = this.chaseTarget(player);
+    return options.reduce((best, dir) => (this.cost(dir, target) < this.cost(best, target) ? dir : best));
   }
-  
-  isValidMove(x: number, y: number, grid: number[][], canPassGhostDoor: boolean): boolean {
-    // Check grid bounds
-    if (x < 0 || x >= grid[0].length || y < 0 || y >= grid.length) {
-      return true; // Allow warping at edges
-    }
-    
-    const cell = grid[y][x];
-    
-    // Ghost can pass through ghost door only if returning home or initially leaving
-    if (cell === CellType.GHOST_DOOR && !canPassGhostDoor) {
-      return false;
-    }
-    
-    // Cannot pass through walls
-    return cell !== CellType.WALL;
+
+  private cost(dir: Direction, target: Point): number {
+    const nx = this.tileX + DELTA[dir].x;
+    const ny = this.tileY + DELTA[dir].y;
+    return (nx - target.x) ** 2 + (ny - target.y) ** 2;
   }
-  
-  getOppositeDirection(direction: Direction): Direction {
-    switch (direction) {
-      case Direction.UP:
-        return Direction.DOWN;
-      case Direction.DOWN:
-        return Direction.UP;
-      case Direction.LEFT:
-        return Direction.RIGHT;
-      case Direction.RIGHT:
-        return Direction.LEFT;
-      default:
-        return Direction.NONE;
-    }
-  }
-  
-  getDirectionToTarget(
-    x: number, 
-    y: number, 
-    targetX: number, 
-    targetY: number, 
-    grid: number[][],
-    canPassGhostDoor: boolean
-  ): Direction {
-    const directions: Direction[] = [
-      Direction.UP,
-      Direction.DOWN,
-      Direction.LEFT,
-      Direction.RIGHT
-    ];
-    
-    // Filter out invalid moves and the opposite of current direction
-    const validDirections = directions.filter(dir => {
-      if (dir === this.getOppositeDirection(this.direction) && this.state !== GhostState.FRIGHTENED) {
-        return false;
-      }
-      
-      let nextX = x;
-      let nextY = y;
-      
-      switch (dir) {
-        case Direction.UP:
-          nextY--;
-          break;
-        case Direction.DOWN:
-          nextY++;
-          break;
-        case Direction.LEFT:
-          nextX--;
-          break;
-        case Direction.RIGHT:
-          nextX++;
-          break;
-      }
-      
-      return this.isValidMove(nextX, nextY, grid, canPassGhostDoor);
-    });
-    
-    if (validDirections.length === 0) {
-      // If no valid directions, reverse direction
-      return this.getOppositeDirection(this.direction);
-    }
-    
-    // Calculate distances for each valid direction
-    const distances = validDirections.map(dir => {
-      let nextX = x;
-      let nextY = y;
-      
-      switch (dir) {
-        case Direction.UP:
-          nextY--;
-          break;
-        case Direction.DOWN:
-          nextY++;
-          break;
-        case Direction.LEFT:
-          nextX--;
-          break;
-        case Direction.RIGHT:
-          nextX++;
-          break;
-      }
-      
-      // Calculate Euclidean distance
-      const dx = nextX - targetX;
-      const dy = nextY - targetY;
-      return {
-        direction: dir,
-        distance: Math.sqrt(dx * dx + dy * dy)
-      };
-    });
-    
-    // Sort by distance (ascending)
-    distances.sort((a, b) => a.distance - b.distance);
-    
-    // Return direction with shortest distance
-    return distances[0].direction;
-  }
-  
-  updateTarget(playerPos: Position, currentLevel: number = 1) {
-    // If eaten, target is the ghost house
-    if (this.state === GhostState.EATEN) {
-      this.targetX = this.homeX;
-      this.targetY = this.homeY;
-      return;
-    }
-    
-    // In early levels (1-3), ghosts should move randomly
-    if (currentLevel < CHASE_MODE_START_LEVEL) {
-      // No specific target for random movement
-      return;
-    }
-    
-    // If scatter mode, target is the designated corner
-    if (this.state === GhostState.SCATTER) {
-      this.targetX = this.scatterTargetX;
-      this.targetY = this.scatterTargetY;
-      return;
-    }
-    
-    // If frightened or random, no specific target (movement is random)
-    if (this.state === GhostState.FRIGHTENED || this.state === GhostState.RANDOM) {
-      return;
-    }
-    
-    // Otherwise, chase mode target depends on ghost type
+
+  private chaseTarget(player: Point): Point {
+    const scatter = SCATTER_TARGETS[this.type];
     switch (this.type) {
       case GhostType.BLINKY:
-        // Blinky directly targets the player
-        this.targetX = playerPos.x;
-        this.targetY = playerPos.y;
-        break;
-        
-      case GhostType.PINKY:
-        // Pinky targets 4 tiles ahead of the player's direction
-        let offsetX = playerPos.x;
-        let offsetY = playerPos.y;
-        
-        // Calculate offset based on player direction
-        switch (this.direction) {
-          case Direction.UP:
-            offsetX -= 4; // The -4 here simulates the famous Pac-Man bug
-            offsetY -= 4;
-            break;
-          case Direction.DOWN:
-            offsetY += 4;
-            break;
-          case Direction.LEFT:
-            offsetX -= 4;
-            break;
-          case Direction.RIGHT:
-            offsetX += 4;
-            break;
-        }
-        
-        this.targetX = offsetX;
-        this.targetY = offsetY;
-        break;
-        
+        return player;
+      case GhostType.PINKY: {
+        // Aim four tiles ahead of the player.
+        const ahead = DELTA[this.direction];
+        return { x: player.x + ahead.x * 4, y: player.y + ahead.y * 4 };
+      }
       case GhostType.INKY:
-        // Inky has a complex targeting mechanism
-        // First, get the position 2 tiles ahead of the player
-        let intermediateX = playerPos.x;
-        let intermediateY = playerPos.y;
-        
-        switch (this.direction) {
-          case Direction.UP:
-            intermediateX -= 2; // Simulate the bug
-            intermediateY -= 2;
-            break;
-          case Direction.DOWN:
-            intermediateY += 2;
-            break;
-          case Direction.LEFT:
-            intermediateX -= 2;
-            break;
-          case Direction.RIGHT:
-            intermediateX += 2;
-            break;
-        }
-        
-        // Use Blinky's position for the calculation
-        const blinkyX = 14; // Using a fixed position for simplicity
-        const blinkyY = 11;
-        
-        this.targetX = intermediateX + (intermediateX - blinkyX);
-        this.targetY = intermediateY + (intermediateY - blinkyY);
-        break;
-        
-      case GhostType.CLYDE:
-        // Clyde targets the player directly if far away, 
-        // but targets his scatter corner if close
-        const dx = this.x - playerPos.x;
-        const dy = this.y - playerPos.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        
-        if (distance > 8) {
-          // If far from player, chase directly
-          this.targetX = playerPos.x;
-          this.targetY = playerPos.y;
-        } else {
-          // If close to player, go to scatter target
-          this.targetX = this.scatterTargetX;
-          this.targetY = this.scatterTargetY;
-        }
-        break;
-    }
-  }
-  
-  setState(state: GhostState, currentLevel: number = 1) {
-    // For levels 1-3, always use RANDOM state unless eaten or frightened
-    if (currentLevel < CHASE_MODE_START_LEVEL && 
-        state !== GhostState.EATEN && 
-        state !== GhostState.FRIGHTENED) {
-      this.state = GhostState.RANDOM;
-    } else {
-      this.state = state;
-    }
-    
-    // If ghost was eaten, reset respawn timer
-    if (state === GhostState.EATEN) {
-      this.respawnTimer = null;
-    }
-    
-    // Update speed based on state
-    switch (this.state) {
-      case GhostState.FRIGHTENED:
-        this.speed = GHOST_FRIGHTENED_SPEED;
-        break;
-      case GhostState.EATEN:
-        this.speed = GHOST_SPEED * 1.5;
-        break;
-      case GhostState.RANDOM:
-        this.speed = GHOST_SPEED * 0.9;
-        break;
+        // Mirror the player around the ghost's own position.
+        return { x: player.x * 2 - this.x, y: player.y * 2 - this.y };
+      case GhostType.CLYDE: {
+        const distance = Math.hypot(player.x - this.x, player.y - this.y);
+        return distance > 8 ? player : scatter;
+      }
       default:
-        this.speed = GHOST_SPEED;
-        break;
+        return scatter;
     }
   }
 }
