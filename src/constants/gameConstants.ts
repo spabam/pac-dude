@@ -1,74 +1,72 @@
-
-// Player starting position
-export const PLAYER_START_X = 14; // Start in horizontal center
-export const PLAYER_START_Y = 23.5; // Updated position to be in a valid corridor
-
 // Grid configuration
 export const GRID_WIDTH = 28;
 export const GRID_HEIGHT = 31;
 export const CELL_SIZE = 16;
 
-// Game mechanics
-export const PLAYER_SPEED = 8; // Pac-Man speed remains the same
-export const GHOST_SPEED = 5; // Reduced from 6 to 5 to make ghosts slower than Pac-Man
-export const GHOST_FRIGHTENED_SPEED = 3; // Reduced from 4 to 3
-export const GHOST_TUNNEL_SPEED = 3; // Reduced from 4 to 3 
-export const GHOST_RANDOM_DIRECTION_CHANGE = 500; // Keep the same
+// Spawn positions (tile centers)
+export const PLAYER_START_X = 13.5;
+export const PLAYER_START_Y = 23.5;
+export const HOUSE_EXIT_X = 13.5;
+export const HOUSE_EXIT_Y = 11.5;
+export const HOUSE_CENTER_X = 13.5;
+export const HOUSE_CENTER_Y = 14.5;
+
+// Speeds, in tiles per second
+export const PLAYER_SPEED = 8;
+export const GHOST_SPEED = 6;
+export const GHOST_FRIGHTENED_SPEED = 3.5;
+export const GHOST_EATEN_SPEED = 14;
+export const GHOST_TUNNEL_SPEED = 3.5;
 
 // Level configuration
-export const CHASE_MODE_START_LEVEL = 4; // Ghosts start chasing player from level 4 onwards
-
-// Ghost movement thresholds
-export const INTERSECTION_THRESHOLD = 0.1; // Keep the same
-export const POSITION_RESET_THRESHOLD = 500; // Keep the same
+export const CHASE_MODE_START_LEVEL = 4; // ghosts only hunt the player from level 4 on
+export const GHOST_RELEASE_DELAY = 2500; // ms between ghosts leaving the house
+export const GHOST_RESPAWN_TIME = 3000; // ms an eaten ghost waits in the house
 
 // Scoring
 export const DOT_POINTS = 10;
 export const POWER_PELLET_POINTS = 50;
 export const GHOST_POINTS = 200;
 export const GHOST_COMBO_MULTIPLIER = 2;
+export const STARTING_LIVES = 3;
 
 // Timers
-export const POWER_PELLET_DURATION = 8000; // 8 seconds
-export const GHOST_FLASH_DURATION = 2000; // 2 seconds before power mode ends
-export const GHOST_HOUSE_TIME = 200; // Keep the same
+export const POWER_PELLET_DURATION = 8000; // ms
+export const GHOST_FLASH_DURATION = 2000; // ms of flashing before power mode ends
 
-// Enums
-export const enum Direction {
+export enum Direction {
   NONE = 0,
   UP = 1,
   DOWN = 2,
   LEFT = 3,
-  RIGHT = 4
+  RIGHT = 4,
 }
 
-export const enum GameState {
+export enum GameState {
   MENU = 0,
   PLAYING = 1,
   PAUSE = 2,
   GAME_OVER = 3,
-  WIN = 4
+  WIN = 4,
 }
 
-export const enum CellType {
+export enum CellType {
   EMPTY = 0,
   WALL = 1,
   DOT = 2,
   POWER_PELLET = 3,
-  GHOST_DOOR = 4
+  GHOST_DOOR = 4,
 }
 
-export const enum GhostType {
-  BLINKY = 0, // Red - chases player directly
-  PINKY = 1,  // Pink - tries to ambush player
-  INKY = 2,   // Cyan - unpredictable
-  CLYDE = 3   // Orange - random movement
+export enum GhostType {
+  BLINKY = 0, // red - direct chaser
+  PINKY = 1, // pink - ambusher
+  INKY = 2, // cyan - unpredictable
+  CLYDE = 3, // orange - shy
 }
 
-export const enum GhostState {
-  CHASE = 0,      // Normal chase mode
-  SCATTER = 1,    // Return to corners
-  FRIGHTENED = 2, // Blue and vulnerable
-  EATEN = 3,      // Eyes only, returning to ghost house
-  RANDOM = 4      // Move randomly
+export enum GhostMode {
+  HOUSE = 0, // inside the house / heading for the door
+  ROAM = 1, // out in the maze
+  EATEN = 2, // eyes returning home
 }

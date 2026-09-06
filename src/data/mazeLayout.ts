@@ -1,6 +1,4 @@
 
-import { CellType } from '../constants/gameConstants';
-
 // 0 = empty space (pathway)
 // 1 = wall
 // 2 = dot
@@ -40,20 +38,3 @@ export const mazeLayout = [
   [1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1],
   [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
 ];
-
-// Count the total dots and power pellets for win condition
-export const countDots = (): number => {
-  let count = 0;
-  
-  for (let y = 0; y < mazeLayout.length; y++) {
-    for (let x = 0; x < mazeLayout[y].length; x++) {
-      if (mazeLayout[y][x] === CellType.DOT || mazeLayout[y][x] === CellType.POWER_PELLET) {
-        count++;
-      }
-    }
-  }
-  
-  return count;
-};
-
-export const TOTAL_DOTS = countDots();
